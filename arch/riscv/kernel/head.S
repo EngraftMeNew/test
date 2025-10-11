@@ -15,7 +15,8 @@ ENTRY(_start)
   csrw CSR_SIP, zero
 
   /* TODO: [p1-task2] clear BSS for flat non-ELF images */
-
+  la    t0,__bss_start
+  la    t1,__BSS_END__
 
   /* TODO: [p1-task2] setup C environment */
 
