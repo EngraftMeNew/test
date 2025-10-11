@@ -15,8 +15,8 @@ ENTRY(_start)
   csrw CSR_SIP, zero
 
   /* TODO: [p1-task2] clear BSS for flat non-ELF images */
-  la    t0,__bss_start
-  la    t1,__BSS_END__
+  la    t0,
+  la    t1,
 
 clear:
   bge   t0,t1,setup_C
@@ -29,7 +29,7 @@ clear:
 setup_C:
   li    sp,KERNEL_STACK
   j     main
-  
+
 loop:
   wfi
   j loop

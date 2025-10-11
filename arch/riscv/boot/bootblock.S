@@ -25,7 +25,7 @@ main:
 
 	// TODO: [p1-task2] call BIOS to read kernel in SD card
 	la 		t0,os_size_loc
-	lw		t0,0(t0)
+	lw		t0,0(t0)    //os_size
 
 	li		t1,511
 	add		t0,t0,t1
