@@ -18,9 +18,18 @@ ENTRY(_start)
   la    t0,__bss_start
   la    t1,__BSS_END__
 
+clear:
+  bge   t0,t1,setup_C
+  sb    zero,0(t0)
+  addi  t0,t0,1
+  j     clear
+
+
   /* TODO: [p1-task2] setup C environment */
-
-
+setup_C:
+  li    sp,KERNEL_STACK
+  j     main
+  
 loop:
   wfi
   j loop

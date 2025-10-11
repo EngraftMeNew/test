@@ -80,6 +80,12 @@ int main(void)
     //   and then execute them.
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
+    char c;
+    while(1){
+        while((c = port_read_ch()) != '\n'){
+            port_write_ch(c);
+        }
+    }
     while (1)
     {
         asm volatile("wfi");

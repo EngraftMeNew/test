@@ -32,26 +32,18 @@ main:
 	li		t1,512
 	divu	t2,t0,t1
 	
-	div		t2,t0,t1
-	rem		t3,t0,t1
-	beqz	t3,rem_is_zero
-	add 	t2,t2,1
+	la 		a0,kernel
+	mv 		a1,t2 
+	li 		a2,1
+	li 		a7,BIOS_SDREAD
 
-rem_is_zero:
-	la 		a0,kernel  //kernal address
-	mv 		a1,t2
-	li 		a2,1  //2nd bootblock
-	li  	a7,BIOS_SDREAD
 	jal 	bios_func_entry
-
-	j 		kernal
-
 
 	// TODO: [p1-task4] load task-related arguments and pass them to kernel
 
 
 	// TODO: [p1-task2] jump to kernel to start UCAS-OS
-
+	j   	kernel
 	/************************************************************/
 	/* Do not touch this comment. Reserved for future projects. */
 	/************************************************************/
