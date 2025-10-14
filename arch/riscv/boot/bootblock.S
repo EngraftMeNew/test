@@ -9,6 +9,7 @@
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
 
+.equ app_info_addr_loc, 0x502001f4
 
 .text
 .global main
@@ -25,15 +26,10 @@ main:
 
 	// TODO: [p1-task2] call BIOS to read kernel in SD card
 	la 		t0,os_size_loc
-	lw		t0,0(t0)    //os_size
-
-	li		t1,511
-	add		t0,t0,t1
-	li		t1,512
-	divu	t2,t0,t1
+	lh		a1,0(t0)
 	
+	#a0 mem_addr  a1 block a2 block_id
 	la 		a0,kernel
-	mv 		a1,t2 
 	li 		a2,1
 	li 		a7,BIOS_SDREAD
 
@@ -41,9 +37,14 @@ main:
 
 	// TODO: [p1-task4] load task-related arguments and pass them to kernel
 
+	la t1, app_info_addr_loc	
+	lw a0, (t1)		// pass the location for task info as parameter 1
+	lw a1, 4(t1)	// pass the size as parameter 2
 
 	// TODO: [p1-task2] jump to kernel to start UCAS-OS
+
 	j   	kernel
+
 	/************************************************************/
 	/* Do not touch this comment. Reserved for future projects. */
 	/************************************************************/

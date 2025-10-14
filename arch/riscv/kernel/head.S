@@ -15,14 +15,14 @@ ENTRY(_start)
   csrw CSR_SIP, zero
 
   /* TODO: [p1-task2] clear BSS for flat non-ELF images */
-  la    t0,
-  la    t1,
+  la    t0, __bss_start
+  la    t1, __BSS_END__  
+  /*seen in riscv.lds*/
 
 clear:
-  bge   t0,t1,setup_C
-  sb    zero,0(t0)
-  addi  t0,t0,1
-  j     clear
+  sw    zero,0(t0)
+  addi  t0,t0,4
+  bltu  t0,t1,clear
 
 
   /* TODO: [p1-task2] setup C environment */

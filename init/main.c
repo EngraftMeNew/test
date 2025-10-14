@@ -30,10 +30,11 @@ static void init_jmptab(void)
 {
     volatile long (*(*jmptab))() = (volatile long (*(*))())KERNEL_JMPTAB_BASE;
 
-    jmptab[CONSOLE_PUTSTR]  = (long (*)())port_write;
+    jmptab[CONSOLE_PUTSTR] = (long (*)())port_write;
     jmptab[CONSOLE_PUTCHAR] = (long (*)())port_write_ch;
     jmptab[CONSOLE_GETCHAR] = (long (*)())port_read_ch;
-    jmptab[SD_READ]         = (long (*)())sd_read;
+    jmptab[SD_READ] = (long (*)())sd_read;
+    // 通过跳转表调用
 }
 
 static void init_task_info(void)
@@ -79,13 +80,37 @@ int main(void)
     // TODO: Load tasks by either task id [p1-task3] or task name [p1-task4],
     //   and then execute them.
 
-    // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
-    char c;
-    while(1){
-        while((c = port_read_ch()) != '\n'){
-            port_write_ch(c);
+    /*task3*/
+    int ch, taskid;
+    uint64_t EnteyAddr;
+    void (*entry)(void);
+    while (1)
+    {
+        while ((ch = bios_getchar()) == -1)
+            ;
+        bios_putchar((char)ch);
+        if (ch >= '0' && ch <= ('0' + (TASK_MAXNUM)))
+        {
+            taskid = ch - '0';
+            bios_putchar('\n');
+            EnteyAddr = load_task_img(taskid);
+            entry = (void (*)(void))(uintptr_t)EnteyAddr;
+
+            entry();
         }
     }
+
+    /* [p1-task2]: echo */
+    /*
+    int c;
+    while (1) {
+        while ((c = bios_getchar()) == -1)
+            ;
+        bios_putchar(c);        // 回显
+    }
+    */
+    // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
+
     while (1)
     {
         asm volatile("wfi");
