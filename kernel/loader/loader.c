@@ -2,6 +2,10 @@
 #include <os/string.h>
 #include <os/kernel.h>
 #include <type.h>
+#include <common.h>
+
+extern task_info_t tasks[TASK_MAXNUM];
+
 static void putstr(const char *s)
 {
     while (*s)
@@ -40,7 +44,12 @@ static void put_hex32(unsigned int x)
     }
 }
 
-uint64_t load_task_img(int taskid)
+static inline unsigned ceil_div_u(unsigned x, unsigned y)
+{
+    return (x + y - 1) / y;
+}
+
+uint64_t load_task_img(const char *taskname)
 {
     /**
      * TODO:
@@ -48,34 +57,30 @@ uint64_t load_task_img(int taskid)
      * 2. [p1-task4] load task via task name, thus the arg should be 'char *taskname'
      */
 
-    /*task3*/
-    uint64_t EntryAddr;
-    char output[] = "loading task X now \n";
-    for (int i = 0; i < strlen(output); i++)
+    for (int i = 0; i < TASK_MAXNUM; ++i)
     {
-        if (output[i] == 'X')
-            bios_putchar((char)(taskid + '0'));
-        else
-            bios_putchar(output[i]);
+        if (strcmp(tasks[i].name, taskname) != 0)
+            continue;
+
+        bios_putstr("\n\rLoading task: ");
+        bios_putstr(tasks[i].name);
+        bios_putstr("\n\r");
+
+        unsigned task_entry = (unsigned)(TASK_MEM_BASE + TASK_SIZE * i);
+        unsigned block_id = tasks[i].offset / SECTOR_SIZE;
+        unsigned block_i_off = tasks[i].offset % SECTOR_SIZE;
+
+        unsigned total_bytes = block_i_off + tasks[i].size;
+        unsigned num_blks = ceil_div_u(total_bytes, SECTOR_SIZE);
+
+        if (sd_read(task_entry, num_blks, block_id) < 0)
+        {
+            bios_putstr("\n\rFailed to load task!");
+            return 0;
+        }
+        return (uint64_t)task_entry + block_i_off;
     }
-    EntryAddr = TASK_MEM_BASE + TASK_SIZE * (taskid - 1);
-    putstr("[loader] Entry=");
-    put_hex32((unsigned)EntryAddr);
-    putstr(" LBA=");
-    put_dec_u(1 + taskid * 32); // 若你已把“15”都改成“20”，这里要一致！
 
-
-    bios_sd_read(EntryAddr, 32, 1 + taskid * 32);
-
-    putstr("[loader] Peek16 ");
-    unsigned char *p = (unsigned char *)EntryAddr;
-    for (int i = 0; i < 16; i++)
-    {
-        put_hex8(p[i]);
-        port_write_ch(' ');
-    }
-    port_write_ch('\n');
-
-    bios_sd_read(EntryAddr, 32 , 1 + taskid * 32);
-    return EntryAddr;
+    bios_putstr("\n\rTask not found!");
+    return 0;
 }

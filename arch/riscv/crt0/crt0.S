@@ -1,41 +1,36 @@
 #include <asm.h>
 
-#define USER_STACK 0x52000000
-
 .section ".entry_function","ax"
 ENTRY(_start)
 
-    /* TODO: [p1-task3] setup C runtime environment for the user program */
-    la      t0, __bss_start     
-    la      t1, __BSS_END__     
+    /* setup C runtime: 建立栈帧，保存 ra/s0 */
+    addi    sp, sp, -16
+    sd      s0, 8(sp)          
+    sd      ra, 0(sp)         
+    addi    s0, sp, 16         
+
+
+    la      t0, __bss_start   
+    la      t1, __BSS_END__    
 
 clear:
-    sw    zero,0(t0)
-    addi  t0,t0,4
-    bltu  t0,t1,clear
+    sw      zero, 0(t0)       
+    addi    t0, t0, 4
+    blt     t0, t1, clear
 
-setup_C:
-    li  t0,USER_STACK
-    sd  sp,0(t0)
-    mv  sp,t0
-    addi    sp,sp,-8
-    sd  ra,0(sp)
+    call    main
 
-    jal main
-    /* TODO: [p1-task3] enter main function */
-
-
-    /* TODO: [p1-task3] finish task and return to the kernel, replace this in p3-task2! */
-    ld  ra,0(sp)
-    ld  sp,8(sp)
-    ret
+    ld      ra, 0(sp)
+    ld      s0, 8(sp)
+    addi    sp, sp, 16
+    jr      ra
 
     /************************************************************/
-	/* Do not touch this comment. Reserved for future projects. */
-	/************************************************************/
-// while(1) loop, unreachable here
+    /* Do not touch this comment. Reserved for future projects. */
+    /************************************************************/
+# while(1) loop, unreachable here
 loop:
     wfi
-    j loop
+    j       loop
 
 END(_start)
