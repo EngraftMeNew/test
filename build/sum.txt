@@ -1,0 +1,129 @@
+
+build/sum:     file format elf64-littleriscv
+
+
+Disassembly of section .text:
+
+00000000520a0000 <_start>:
+    520a0000:	1141                	addi	sp,sp,-16
+    520a0002:	e422                	sd	s0,8(sp)
+    520a0004:	e006                	sd	ra,0(sp)
+    520a0006:	0800                	addi	s0,sp,16
+    520a0008:	00000297          	auipc	t0,0x0
+    520a000c:	22c28293          	addi	t0,t0,556 # 520a0234 <__DATA_BEGIN__>
+    520a0010:	00000317          	auipc	t1,0x0
+    520a0014:	22830313          	addi	t1,t1,552 # 520a0238 <__BSS_END__>
+
+00000000520a0018 <clear>:
+    520a0018:	0002a023          	sw	zero,0(t0)
+    520a001c:	0291                	addi	t0,t0,4
+    520a001e:	fe62cde3          	blt	t0,t1,520a0018 <clear>
+    520a0022:	014000ef          	jal	520a0036 <main>
+    520a0026:	6082                	ld	ra,0(sp)
+    520a0028:	6422                	ld	s0,8(sp)
+    520a002a:	0141                	addi	sp,sp,16
+    520a002c:	8082                	ret
+
+00000000520a002e <loop>:
+    520a002e:	10500073          	wfi
+    520a0032:	bff5                	j	520a002e <loop>
+    520a0034:	0001                	nop
+
+00000000520a0036 <main>:
+    520a0036:	1141                	addi	sp,sp,-16
+    520a0038:	00000517          	auipc	a0,0x0
+    520a003c:	10850513          	addi	a0,a0,264 # 520a0140 <bios_putint+0xb2>
+    520a0040:	e406                	sd	ra,8(sp)
+    520a0042:	038000ef          	jal	520a007a <bios_putstr>
+    520a0046:	00000517          	auipc	a0,0x0
+    520a004a:	12250513          	addi	a0,a0,290 # 520a0168 <bios_putint+0xda>
+    520a004e:	02c000ef          	jal	520a007a <bios_putstr>
+    520a0052:	03700513          	li	a0,55
+    520a0056:	038000ef          	jal	520a008e <bios_putint>
+    520a005a:	00000517          	auipc	a0,0x0
+    520a005e:	11e50513          	addi	a0,a0,286 # 520a0178 <bios_putint+0xea>
+    520a0062:	018000ef          	jal	520a007a <bios_putstr>
+    520a0066:	00000517          	auipc	a0,0x0
+    520a006a:	11a50513          	addi	a0,a0,282 # 520a0180 <bios_putint+0xf2>
+    520a006e:	00c000ef          	jal	520a007a <bios_putstr>
+    520a0072:	60a2                	ld	ra,8(sp)
+    520a0074:	4501                	li	a0,0
+    520a0076:	0141                	addi	sp,sp,16
+    520a0078:	8082                	ret
+
+00000000520a007a <bios_putstr>:
+    520a007a:	520007b7          	lui	a5,0x52000
+    520a007e:	f0078793          	addi	a5,a5,-256 # 51ffff00 <_start-0xa0100>
+    520a0082:	639c                	ld	a5,0(a5)
+    520a0084:	4701                	li	a4,0
+    520a0086:	4681                	li	a3,0
+    520a0088:	4601                	li	a2,0
+    520a008a:	4581                	li	a1,0
+    520a008c:	8782                	jr	a5
+
+00000000520a008e <bios_putint>:
+    520a008e:	cd41                	beqz	a0,520a0126 <bios_putint+0x98>
+    520a0090:	7179                	addi	sp,sp,-48
+    520a0092:	e84a                	sd	s2,16(sp)
+    520a0094:	f406                	sd	ra,40(sp)
+    520a0096:	f022                	sd	s0,32(sp)
+    520a0098:	ec26                	sd	s1,24(sp)
+    520a009a:	892a                	mv	s2,a0
+    520a009c:	06054763          	bltz	a0,520a010a <bios_putint+0x7c>
+    520a00a0:	66666537          	lui	a0,0x66666
+    520a00a4:	858a                	mv	a1,sp
+    520a00a6:	66750513          	addi	a0,a0,1639 # 66666667 <__BSS_END__+0x145c642f>
+    520a00aa:	4601                	li	a2,0
+    520a00ac:	02a90733          	mul	a4,s2,a0
+    520a00b0:	41f9569b          	sraiw	a3,s2,0x1f
+    520a00b4:	8432                	mv	s0,a2
+    520a00b6:	0585                	addi	a1,a1,1
+    520a00b8:	2605                	addiw	a2,a2,1
+    520a00ba:	9709                	srai	a4,a4,0x22
+    520a00bc:	9f15                	subw	a4,a4,a3
+    520a00be:	0027169b          	slliw	a3,a4,0x2
+    520a00c2:	9eb9                	addw	a3,a3,a4
+    520a00c4:	0016969b          	slliw	a3,a3,0x1
+    520a00c8:	40d907bb          	subw	a5,s2,a3
+    520a00cc:	0307879b          	addiw	a5,a5,48
+    520a00d0:	fef58fa3          	sb	a5,-1(a1)
+    520a00d4:	893a                	mv	s2,a4
+    520a00d6:	fb79                	bnez	a4,520a00ac <bios_putint+0x1e>
+    520a00d8:	52000937          	lui	s2,0x52000
+    520a00dc:	940a                	add	s0,s0,sp
+    520a00de:	fff10493          	addi	s1,sp,-1
+    520a00e2:	f0890913          	addi	s2,s2,-248 # 51ffff08 <_start-0xa00f8>
+    520a00e6:	00044503          	lbu	a0,0(s0)
+    520a00ea:	00093783          	ld	a5,0(s2)
+    520a00ee:	4701                	li	a4,0
+    520a00f0:	4681                	li	a3,0
+    520a00f2:	4601                	li	a2,0
+    520a00f4:	4581                	li	a1,0
+    520a00f6:	147d                	addi	s0,s0,-1
+    520a00f8:	9782                	jalr	a5
+    520a00fa:	fe9416e3          	bne	s0,s1,520a00e6 <bios_putint+0x58>
+    520a00fe:	70a2                	ld	ra,40(sp)
+    520a0100:	7402                	ld	s0,32(sp)
+    520a0102:	64e2                	ld	s1,24(sp)
+    520a0104:	6942                	ld	s2,16(sp)
+    520a0106:	6145                	addi	sp,sp,48
+    520a0108:	8082                	ret
+    520a010a:	52000737          	lui	a4,0x52000
+    520a010e:	f0873803          	ld	a6,-248(a4) # 51ffff08 <_start-0xa00f8>
+    520a0112:	4681                	li	a3,0
+    520a0114:	4701                	li	a4,0
+    520a0116:	4601                	li	a2,0
+    520a0118:	4581                	li	a1,0
+    520a011a:	02d00513          	li	a0,45
+    520a011e:	9802                	jalr	a6
+    520a0120:	4120093b          	negw	s2,s2
+    520a0124:	bfb5                	j	520a00a0 <bios_putint+0x12>
+    520a0126:	520007b7          	lui	a5,0x52000
+    520a012a:	f0878793          	addi	a5,a5,-248 # 51ffff08 <_start-0xa00f8>
+    520a012e:	639c                	ld	a5,0(a5)
+    520a0130:	4701                	li	a4,0
+    520a0132:	4681                	li	a3,0
+    520a0134:	4601                	li	a2,0
+    520a0136:	4581                	li	a1,0
+    520a0138:	03000513          	li	a0,48
+    520a013c:	8782                	jr	a5

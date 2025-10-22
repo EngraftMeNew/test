@@ -14,11 +14,21 @@ ENTRY(_start)
   csrw CSR_SIE, zero
   csrw CSR_SIP, zero
 
+  la t0, __bss_start
+  la t1, __BSS_END__
+
   /* TODO: [p1-task2] clear BSS for flat non-ELF images */
 
+clear:
+  sw zero, 0(t0)
+  addi t0, t0, 4
+  blt t0, t1, clear
 
   /* TODO: [p1-task2] setup C environment */
+setup_C:
+  la sp, KERNEL_STACK
 
+  j main
 
 loop:
   wfi

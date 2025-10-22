@@ -47,4 +47,34 @@ static inline int bios_getchar(void)
     return call_jmptab(CONSOLE_GETCHAR, 0, 0, 0, 0, 0);
 }
 
+// --- add: tiny print helpers (only use bios_putchar / bios_putstr) ---
+static void putch(char c){ bios_putchar(c); }
+
+static void put_dec(int x){
+    char buf[16]; int i=0;
+    if(x==0){ putch('0'); return; }
+    if(x<0){ putch('-'); x=-x; }
+    while(x){ buf[i++] = '0'+(x%10); x/=10; }
+    while(i--) putch(buf[i]);
+}
+
+static void put_hex8(unsigned int v){
+    const char* H="0123456789ABCDEF";
+    putch(H[(v>>4)&0xF]); putch(H[v&0xF]);
+}
+
+static void put_hex32(unsigned int v){
+    for(int i=7;i>=0;--i) put_hex8((v>>(i*4))&0xF);
+}
+
+static void dump_bytes(const void* p, int n){
+    const unsigned char* b=(const unsigned char*)p;
+    for(int i=0;i<n;i++){
+        put_hex8(b[i]); putch(' ');
+        if((i&0x0F)==0x0F){ bios_putstr("\n"); }
+    }
+    if((n&0x0F)!=0) bios_putstr("\n");
+}
+
+
 #endif
