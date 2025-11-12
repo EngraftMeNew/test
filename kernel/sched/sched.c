@@ -222,7 +222,7 @@ int calculate_time_slice(int *D_table, int table_p, int fly_id)
     const int Total_T = 60; // 本轮预算
     const int scale = 100;  // 定点放大
 
-    // 1) 平均进度（用64位避免溢出）
+    // 1) 平均进度
     long long sum_D = 0;
     for (int i = 0; i < table_p; i++)
         sum_D += (long long)D_table[i];
@@ -242,7 +242,7 @@ int calculate_time_slice(int *D_table, int table_p, int fly_id)
             my_weight = w;
     }
 
-    // 3) 时间片分配（四舍五入）
+    // 3) 时间片分配
     int time_slice;
     if (sum_weights > 0)
     {

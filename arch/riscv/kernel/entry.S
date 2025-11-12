@@ -7,7 +7,7 @@
   /* HINT: Pay attention to the function of tp and sp, and save them carefully! */
   sd sp, PCB_USER_SP(tp)    // store user stack
   ld sp, PCB_KERNEL_SP(tp)  // recover kernel stack
-  addi sp, sp, -OFFSET_SIZE
+  addi sp, sp, -OFFSET_SIZE   /*保存所有通用寄存器*/
   sd x0, OFFSET_REG_ZERO(sp)
 
   sd ra, OFFSET_REG_RA(sp)
@@ -60,9 +60,9 @@
   li t0, SR_SUM | SR_FS
 
   /* TODO: [p2-task3] save sstatus, sepc, stval and scause on kernel stack */
+  /*保存关键CSR*/
   csrr t0, sstatus
   csrr t1, sepc
-  // csrr t2, sbadaddr
   csrr t3, scause
   sd t0, OFFSET_REG_SSTATUS(sp)
   sd t1, OFFSET_REG_SEPC(sp)
@@ -130,24 +130,24 @@
 
 ENTRY(enable_preempt)
   not t0, x0
-  csrs CSR_SIE, t0
+  csrs CSR_SIE, t0   //把SIE的各位都置1（定时）
   jr ra
 ENDPROC(enable_preempt)
 
 ENTRY(disable_preempt)
-  csrw CSR_SIE, zero
+  csrw CSR_SIE, zero   //清空SIE
   jr ra
 ENDPROC(disable_preempt)
 
 ENTRY(enable_interrupt)
   li t0, SR_SIE
-  csrs CSR_SSTATUS, t0
+  csrs CSR_SSTATUS, t0    //开SSTATES.SIE
   jr ra
 ENDPROC(enable_interrupt)
 
 ENTRY(disable_interrupt)
   li t0, SR_SIE
-  csrc CSR_SSTATUS, t0
+  csrc CSR_SSTATUS, t0   //关
   jr ra
 ENDPROC(disable_interrupt)
 

@@ -42,9 +42,6 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
     // TODO: [p2-task4] clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
-    (void)regs;
-    (void)stval;
-    (void)scause;
     uint64_t next = get_ticks() + TIMER_INTERVAL;
     bios_set_timer(next); // 预约下一次时钟中断，避免提前切到别的任务
     do_scheduler();       // 重新调度

@@ -1,6 +1,7 @@
 #include <asm.h>
 #include <csr.h>
 
+
 ENTRY(setup_exception)
 
   //异常入口函数地址写入t0->stvec
@@ -8,6 +9,7 @@ ENTRY(setup_exception)
   la t0, exception_handler_entry
   csrw stvec, t0
 
+  //全局中断使能
   /* TODO: [p2-task4] enable interrupts globally */
   addi    sp, sp, -8   
   sd      ra, 0(sp)
