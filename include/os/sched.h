@@ -54,7 +54,8 @@ typedef struct switchto_context
     reg_t regs[14];
 } switchto_context_t;
 
-typedef enum {
+typedef enum
+{
     TASK_BLOCKED,
     TASK_RUNNING,
     TASK_READY,
@@ -85,6 +86,17 @@ typedef struct pcb
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
+    /*Task 5*/
+    int position_now;
+    int position_last;
+    uint64_t time_now;
+    uint64_t time_last;
+    bool if_fly;
+    int fly_speed_absolute_b; // 绝对速度的倒数（由于这里时间较大，而路程很小，用倒数更不容易出现精度误差）
+    int fly_speed_ralative_b; //
+    int fly_id;
+    int time_slice;
+    int time_slice_remain;
 } pcb_t;
 
 /* ready queue to run */
@@ -94,7 +106,7 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-register pcb_t * current_running asm("tp");
+register pcb_t *current_running asm("tp");
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
@@ -105,8 +117,18 @@ extern void switch_to(pcb_t *prev, pcb_t *next);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
+pcb_t *get_pcb_from_node(list_node_t *node);
+
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
+
+void do_set_sche_workload(int position);
+extern int FLY_SPEED_TABLE[16];
+extern int FLY_LENGTH_TABLE[16];
+int calculate_time_slice(int *D_table, int table_p, int fly_id);
+// 输出：out_ts[i]，保证 sum(out_ts) == totalT
+void fair_allocate_time_slices(const int *D, int n, int totalT, int Tmin,
+                               int *out_ts);
 
 /************************************************************/
 /* Do not touch this comment. Reserved for future projects. */

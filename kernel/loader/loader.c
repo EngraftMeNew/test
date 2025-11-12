@@ -1,86 +1,75 @@
+#include <os/kernel.h>
 #include <os/task.h>
 #include <os/string.h>
-#include <os/kernel.h>
 #include <type.h>
-#include <common.h>
 
-extern task_info_t tasks[TASK_MAXNUM];
-
-static void putstr(const char *s)
-{
-    while (*s)
-        port_write_ch(*s++);
-}
-static void put_dec_u(unsigned int v)
-{
-    char b[11];
-    int n = 0;
-    if (!v)
-    {
-        port_write_ch('0');
-        return;
-    }
-    while (v)
-    {
-        b[n++] = '0' + (v % 10);
-        v /= 10;
-    }
-    while (n--)
-        port_write_ch(b[n]);
-}
-static void put_hex8(unsigned char x)
-{
-    static const char H[] = "0123456789ABCDEF";
-    port_write_ch(H[(x >> 4) & 0xF]);
-    port_write_ch(H[x & 0xF]);
-}
-static void put_hex32(unsigned int x)
-{
-    for (int i = 7; i >= 0; --i)
-    {
-        unsigned int nyb = (x >> (i * 4)) & 0xF;
-        static const char H[] = "0123456789ABCDEF";
-        port_write_ch(H[nyb]);
-    }
-}
-
-static inline unsigned ceil_div_u(unsigned x, unsigned y)
-{
-    return (x + y - 1) / y;
-}
-
-uint64_t load_task_img(const char *taskname)
+/* uint64_t load_task_img(int taskid)
 {
     /**
      * TODO:
      * 1. [p1-task3] load task from image via task id, and return its entrypoint
      * 2. [p1-task4] load task via task name, thus the arg should be 'char *taskname'
-     */
-
-    for (int i = 0; i < TASK_MAXNUM; ++i)
-    {
-        if (strcmp(tasks[i].name, taskname) != 0)
-            continue;
-
-        bios_putstr("\n\rLoading task: ");
-        bios_putstr(tasks[i].name);
-        bios_putstr("\n\r");
-
-        unsigned task_entry = (unsigned)(TASK_MEM_BASE + TASK_SIZE * i);
-        unsigned block_id = tasks[i].offset / SECTOR_SIZE;
-        unsigned block_i_off = tasks[i].offset % SECTOR_SIZE;
-
-        unsigned total_bytes = block_i_off + tasks[i].size;
-        unsigned num_blks = ceil_div_u(total_bytes, SECTOR_SIZE);
-
-        if (sd_read(task_entry, num_blks, block_id) < 0)
-        {
-            bios_putstr("\n\rFailed to load task!");
-            return 0;
-        }
-        return (uint64_t)task_entry + block_i_off;
+     **//*
+    uint64_t entry_addr;
+    char info[] = "Loading task _ ...\n\r";
+    for(int i=0;i<strlen(info);i++){
+        if(info[i]!='_') bios_putchar(info[i]);
+        else bios_putchar(taskid +'0');
     }
+    entry_addr = TASK_MEM_BASE + TASK_SIZE * (taskid - 1);  
+    bios_sd_read(entry_addr, 15, 1 + taskid * 15);
+    return entry_addr;
+}
+*/
 
-    bios_putstr("\n\rTask not found!");
+// [p1-task4]
+uint64_t load_task_img(char *taskname){
+    int i;
+    int entry_addr;
+    int start_sec;
+    for(i=0;i<TASK_MAXNUM;i++){
+        if(strcmp(taskname, tasks[i].task_name)==0){
+            entry_addr = TASK_MEM_BASE + TASK_SIZE * i;
+            start_sec = tasks[i].start_addr / 512;                      // 起始扇区：向下取整
+            bios_sd_read(TMP_MEM_BASE, tasks[i].block_nums, start_sec);
+            memcpy((uint8_t *)(uint64_t)(entry_addr), (uint8_t *)(uint64_t)(TMP_MEM_BASE + (tasks[i].start_addr - start_sec*512)), tasks[i].block_nums * 512); 
+            return entry_addr;  // 返回程序存储的起始位置
+        }
+    }
+    // 匹配失败，提醒重新输入
+    char *output_str = "Fail to find the task! Please try again!";
+    for(i=0; i<strlen(output_str); i++){
+        bios_putchar(output_str[i]);
+    }
+    bios_putchar('\n');
     return 0;
+}
+
+void batch(){
+    uint64_t entry_addr;
+    void (*entry) (void);
+    char taskname[16] = "number";
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
+    memcpy(taskname, "mul3", 5);
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
+    memcpy(taskname, "add10", 6);
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
+    memcpy(taskname, "square", 7);
+    entry_addr = load_task_img(taskname);
+    if(entry_addr!=0){
+    entry = (void*) entry_addr;
+    entry();
+    }
 }

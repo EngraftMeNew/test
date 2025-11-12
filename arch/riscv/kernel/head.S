@@ -1,8 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-/*
- * Copyright (C) 2012 Regents of the University of California
- */
-
 #include <asm.h>
 #include <csr.h>
 
@@ -14,21 +9,19 @@ ENTRY(_start)
   csrw CSR_SIE, zero
   csrw CSR_SIP, zero
 
+  /* TODO: [p1-task2] clear BSS for flat non-ELF images */
   la t0, __bss_start
   la t1, __BSS_END__
-
-  /* TODO: [p1-task2] clear BSS for flat non-ELF images */
-
-clear:
+do_clear:
   sw zero, 0(t0)
   addi t0, t0, 4
-  blt t0, t1, clear
+  bltu t0, t1, do_clear
 
   /* TODO: [p1-task2] setup C environment */
-setup_C:
-  la sp, KERNEL_STACK
 
+  li sp, KERNEL_STACK
   j main
+
 
 loop:
   wfi

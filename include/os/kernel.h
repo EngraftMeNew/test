@@ -5,7 +5,8 @@
 #include <common.h>
 
 #define KERNEL_JMPTAB_BASE 0x51ffff00
-typedef enum {
+typedef enum
+{
     CONSOLE_PUTSTR,
     CONSOLE_PUTCHAR,
     CONSOLE_GETCHAR,
@@ -15,6 +16,8 @@ typedef enum {
     SET_TIMER,
     READ_FDT,
     MOVE_CURSOR,
+    WRITE,
+    REFLUSH,
     PRINT,
     YIELD,
     MUTEX_INIT,
@@ -25,7 +28,7 @@ typedef enum {
 
 static inline long call_jmptab(long which, long arg0, long arg1, long arg2, long arg3, long arg4)
 {
-    unsigned long val = \
+    unsigned long val =
         *(unsigned long *)(KERNEL_JMPTAB_BASE + sizeof(unsigned long) * which);
     long (*func)(long, long, long, long, long) = (long (*)(long, long, long, long, long))val;
 
@@ -47,20 +50,20 @@ static inline int bios_getchar(void)
     return call_jmptab(CONSOLE_GETCHAR, 0, 0, 0, 0, 0);
 }
 
-static inline int bios_sd_read(unsigned mem_address, unsigned num_of_blocks, \
-                              unsigned block_id)
+static inline int bios_sd_read(unsigned mem_address, unsigned num_of_blocks,
+                               unsigned block_id)
 {
-    return call_jmptab(SD_READ, (long)mem_address, (long)num_of_blocks, \
-                        (long)block_id, 0, 0);
+    return call_jmptab(SD_READ, (long)mem_address, (long)num_of_blocks,
+                       (long)block_id, 0, 0);
 }
 
 /************************************************************/
 
-static inline int bios_sd_write(unsigned mem_address, unsigned num_of_blocks, \
-                              unsigned block_id)
+static inline int bios_sd_write(unsigned mem_address, unsigned num_of_blocks,
+                                unsigned block_id)
 {
-    return call_jmptab(SD_WRITE, (long)mem_address, (long)num_of_blocks, \
-                        (long)block_id, 0, 0);
+    return call_jmptab(SD_WRITE, (long)mem_address, (long)num_of_blocks,
+                       (long)block_id, 0, 0);
 }
 
 static inline void bios_logging(char *str)
