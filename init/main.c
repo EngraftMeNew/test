@@ -95,20 +95,10 @@ static void init_pcb(void)
     // PCB for kernel
     uint64_t entry[NUM_MAX_TASK + 1]; /* entry of all tasks */
 
-    /*
-    char needed_tasks[][16] = {
-        "print1", "print2", "lock1", "lock2", "sleep", "timer", "fly"
-        //"fly1", "fly2", "fly3", "fly4", "fly5"
-    };
-    */
-    /*
-    char needed_tasks[][16] = {
-        "print1", "print2", "lock1", "lock2", "fly"};
-    */
-    ///*
-    char needed_tasks[][16] = {
-        "fly1", "fly2", "fly3", "fly4", "fly5"};
-    //*/
+    // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "sleep", "timer", "fly", "fly1", "fly2", "fly3", "fly4", "fly5"};
+    // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "fly"};
+    // char needed_tasks[][16] = {"fly1", "fly2", "fly3", "fly4", "fly5"};
+    char needed_tasks[][16]={"print1","print2","fly"};
     uint64_t entry_addr;
     int tasknum = 0;
     pid0_pcb.status = TASK_RUNNING;
@@ -116,7 +106,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 3; i++)
     {
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
@@ -128,17 +118,7 @@ static void init_pcb(void)
             pcb[tasknum].status = TASK_READY;
             pcb[tasknum].cursor_x = 0;
             pcb[tasknum].cursor_y = 0;
-            // Task 5
-            pcb[tasknum].fly_speed_absolute_b = 0;
-            pcb[tasknum].fly_speed_ralative_b = 0;
-            pcb[tasknum].if_fly = 0;
-            pcb[tasknum].position_last = 0;
-            pcb[tasknum].position_now = 0;
-            pcb[tasknum].fly_id = 0;
-            pcb[tasknum].time_last = 0;
-            pcb[tasknum].time_now = 0;
-            pcb[tasknum].time_slice = 1;
-            pcb[tasknum].time_slice_remain = 1;
+
 
             init_pcb_stack(pcb[tasknum].kernel_sp, pcb[tasknum].user_sp, entry_addr, &pcb[tasknum]);
             // add to ready queue
