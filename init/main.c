@@ -189,11 +189,11 @@ int main(int app_info_loc, int app_info_size)
     while (1)
     {
         // If you do non-preemptive scheduling, it's used to surrender control
-        // do_scheduler();
+         do_scheduler();
 
         // If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
-        enable_preempt();
-        asm volatile("wfi");
+        //enable_preempt();
+        //asm volatile("wfi");
     }
 
     return 0;
