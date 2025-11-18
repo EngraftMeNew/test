@@ -5,9 +5,9 @@
 .macro SAVE_CONTEXT
   /* TODO: [p2-task3] save all general purpose registers here! */
   /* HINT: Pay attention to the function of tp and sp, and save them carefully! */
-  sd sp, PCB_USER_SP(tp)    // store user stack
-  ld sp, PCB_KERNEL_SP(tp)  // recover kernel stack
-  addi sp, sp, -OFFSET_SIZE   /*保存所有通用寄存器*/
+  sd sp, PCB_USER_SP(tp)    //user stack
+  ld sp, PCB_KERNEL_SP(tp)  // kernel stack
+  addi sp, sp, -OFFSET_SIZE   
   sd x0, OFFSET_REG_ZERO(sp)
 
   sd ra, OFFSET_REG_RA(sp)
@@ -19,21 +19,15 @@
   sd t1, OFFSET_REG_T1(sp)
   sd t2, OFFSET_REG_T2(sp)
 
-  ld t0, PCB_USER_SP(tp)
-  sd t0, OFFSET_REG_SP(sp)  // store user stack
+  ld t0, PCB_USER_SP(tp)   //用户态sp
+  sd t0, OFFSET_REG_SP(sp)  //
+  sd t3, OFFSET_REG_T3(sp)
+  sd t4, OFFSET_REG_T4(sp)
+  sd t5, OFFSET_REG_T5(sp)
+  sd t6, OFFSET_REG_T6(sp)
 
   sd s0, OFFSET_REG_S0(sp)
   sd s1, OFFSET_REG_S1(sp)
-
-  sd a0, OFFSET_REG_A0(sp)
-  sd a1, OFFSET_REG_A1(sp)
-  sd a2, OFFSET_REG_A2(sp)
-  sd a3, OFFSET_REG_A3(sp)
-  sd a4, OFFSET_REG_A4(sp)
-  sd a5, OFFSET_REG_A5(sp)
-  sd a6, OFFSET_REG_A6(sp)
-  sd a7, OFFSET_REG_A7(sp)
-
   sd s2, OFFSET_REG_S2(sp)
   sd s3, OFFSET_REG_S3(sp)
   sd s4, OFFSET_REG_S4(sp)
@@ -45,10 +39,15 @@
   sd s10, OFFSET_REG_S10(sp)
   sd s11, OFFSET_REG_S11(sp)
 
-  sd t3, OFFSET_REG_T3(sp)
-  sd t4, OFFSET_REG_T4(sp)
-  sd t5, OFFSET_REG_T5(sp)
-  sd t6, OFFSET_REG_T6(sp)
+  sd a0, OFFSET_REG_A0(sp)
+  sd a1, OFFSET_REG_A1(sp)
+  sd a2, OFFSET_REG_A2(sp)
+  sd a3, OFFSET_REG_A3(sp)
+  sd a4, OFFSET_REG_A4(sp)
+  sd a5, OFFSET_REG_A5(sp)
+  sd a6, OFFSET_REG_A6(sp)
+  sd a7, OFFSET_REG_A7(sp)
+
 
   /*
    * Disable user-mode memory access as it should only be set in the
@@ -57,12 +56,12 @@
    * Disable the FPU to detect illegal usage of floating point in kernel
    * space.
    */
-  li t0, SR_SUM | SR_FS
 
   /* TODO: [p2-task3] save sstatus, sepc, stval and scause on kernel stack */
   /*保存关键CSR*/
-  csrr t0, sstatus
-  csrr t1, sepc
+  csrr t0, sstatus  
+  csrr t1, sepc    
+  csrr t2, stval
   csrr t3, scause
   sd t0, OFFSET_REG_SSTATUS(sp)
   sd t1, OFFSET_REG_SEPC(sp)
@@ -75,7 +74,6 @@
   /* TODO: Restore all general purpose registers and sepc, sstatus */
   /* HINT: Pay attention to sp again! */
   ld x0, OFFSET_REG_ZERO(sp)
-
   ld ra, OFFSET_REG_RA(sp)
 
   ld gp, OFFSET_REG_GP(sp)
@@ -84,6 +82,10 @@
   ld t0, OFFSET_REG_T0(sp)
   ld t1, OFFSET_REG_T1(sp)
   ld t2, OFFSET_REG_T2(sp)
+  ld t3, OFFSET_REG_SSTATUS(sp)
+  ld t4, OFFSET_REG_SEPC(sp)
+  ld t5, OFFSET_REG_SBADADDR(sp)
+  ld t6, OFFSET_REG_SCAUSE(sp)
 
   ld s0, OFFSET_REG_S0(sp)
   ld s1, OFFSET_REG_S1(sp)
@@ -108,14 +110,8 @@
   ld s10, OFFSET_REG_S10(sp)
   ld s11, OFFSET_REG_S11(sp)
 
-  ld t3, OFFSET_REG_SSTATUS(sp)
-  ld t4, OFFSET_REG_SEPC(sp)
-  ld t5, OFFSET_REG_SBADADDR(sp)
-  ld t6, OFFSET_REG_SCAUSE(sp)
-
   csrw sstatus, t3
   csrw sepc, t4
-  // csrw sbadaddr, t5
   csrw scause, t6
 
   ld t3, OFFSET_REG_T3(sp)
@@ -210,65 +206,13 @@ ENDPROC(switch_to)
 ENTRY(ret_from_exception)
   /* TODO: [p2-task3] restore context via provided macro and return to sepc */
   /* HINT: remember to check your sp, does it point to the right address? */
-  # RESTORE_CONTEXT
-  ld x0, OFFSET_REG_ZERO(sp)
-
-  ld ra, OFFSET_REG_RA(sp)
-
-  ld gp, OFFSET_REG_GP(sp)
-  ld tp, OFFSET_REG_TP(sp)
-
-  ld t0, OFFSET_REG_T0(sp)
-  ld t1, OFFSET_REG_T1(sp)
-  ld t2, OFFSET_REG_T2(sp)
-
-  ld s0, OFFSET_REG_S0(sp)
-  ld s1, OFFSET_REG_S1(sp)
-
-  ld a0, OFFSET_REG_A0(sp)
-  ld a1, OFFSET_REG_A1(sp)
-  ld a2, OFFSET_REG_A2(sp)
-  ld a3, OFFSET_REG_A3(sp)
-  ld a4, OFFSET_REG_A4(sp)
-  ld a5, OFFSET_REG_A5(sp)
-  ld a6, OFFSET_REG_A6(sp)
-  ld a7, OFFSET_REG_A7(sp)
-
-  ld s2, OFFSET_REG_S2(sp)
-  ld s3, OFFSET_REG_S3(sp)
-  ld s4, OFFSET_REG_S4(sp)
-  ld s5, OFFSET_REG_S5(sp)
-  ld s6, OFFSET_REG_S6(sp)
-  ld s7, OFFSET_REG_S7(sp)
-  ld s8, OFFSET_REG_S8(sp)
-  ld s9, OFFSET_REG_S9(sp)
-  ld s10, OFFSET_REG_S10(sp)
-  ld s11, OFFSET_REG_S11(sp)
-
-  ld t3, OFFSET_REG_SSTATUS(sp)
-  ld t4, OFFSET_REG_SEPC(sp)
-  ld t5, OFFSET_REG_SBADADDR(sp)
-  ld t6, OFFSET_REG_SCAUSE(sp)
-
-  csrw sstatus, t3
-  csrw sepc, t4
-  // csrw sbadaddr, t5
-  csrw scause, t6
-
-  ld t3, OFFSET_REG_T3(sp)
-  ld t4, OFFSET_REG_T4(sp)
-  ld t5, OFFSET_REG_T5(sp)
-  ld t6, OFFSET_REG_T6(sp)
-  
-  addi sp, sp, OFFSET_SIZE
-  sd   sp, PCB_KERNEL_SP(tp)
-  ld sp, PCB_USER_SP(tp)
+  RESTORE_CONTEXT
   sret
 ENDPROC(ret_from_exception)
 
 
 /*异常入口*/
-/*要完成例外处理入口相关。内容：保存现场、根据 scause 寄存器的例外触发状态跳转到例外/中断分发函数*/
+/*完成例外处理入口相关。内容：保存现场、根据 scause 寄存器的例外触发状态跳转到例外/中断分发函数*/
 ENTRY(exception_handler_entry)
 
   /* TODO: [p2-task3] save context via the provided macro */
@@ -277,7 +221,7 @@ ENTRY(exception_handler_entry)
   /* TODO: [p2-task3] load ret_from_exception into $ra so that we can return to
    * ret_from_exception when interrupt_help complete.
    */
-
+  
 
   /* TODO: [p2-task3] call interrupt_helper
    * NOTE: don't forget to pass parameters for it.
@@ -286,7 +230,7 @@ ENTRY(exception_handler_entry)
   csrr a1, stval
   csrr a2, scause
   call interrupt_helper
-
+  
   la ra, ret_from_exception
   ret
 

@@ -37,27 +37,30 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
     }
 }
 
-// S态定时器中断处理函数。负责预约下一次时钟中断，并触发调度。
 void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
     // TODO: [p2-task4] clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
     uint64_t next = get_ticks() + TIMER_INTERVAL;
-    bios_set_timer(next); // 预约下一次时钟中断，避免提前切到别的任务
-    do_scheduler();       // 重新调度
+    bios_set_timer(next); 
+    do_scheduler();       
 }
 
 void init_exception(void)
 {
-    // 全表默认指向 handle_other
+    /* TODO: [p2-task3] initialize exc_table */
+    /* NOTE: handle_syscall, handle_other, etc.*/
     for (int i = 0; i < EXCC_COUNT; ++i)
         exc_table[i] = handle_other;
+    exc_table[EXCC_SYSCALL] = handle_syscall;
+
+    /* TODO: [p2-task4] initialize irq_table */
+    /* NOTE: handle_int, handle_other, etc.*/
     for (int i = 0; i < IRQC_COUNT; ++i)
         irq_table[i] = handle_other;
-
-    exc_table[EXCC_SYSCALL] = handle_syscall;
     irq_table[IRQC_S_TIMER] = handle_irq_timer;
 
+    /* TODO: [p2-task3] set up the entrypoint of exceptions */
     setup_exception();
 }
 

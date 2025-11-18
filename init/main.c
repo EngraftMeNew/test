@@ -34,9 +34,6 @@ static void init_jmptab(void)
     jmptab[QEMU_LOGGING] = (long (*)())qemu_logging;
     jmptab[SET_TIMER] = (long (*)())set_timer;
     jmptab[READ_FDT] = (long (*)())read_fdt;
-    jmptab[MOVE_CURSOR] = (long (*)())screen_move_cursor;
-    jmptab[WRITE] = (long (*)())screen_write;
-    jmptab[REFLUSH] = (long (*)())screen_reflush;
     jmptab[PRINT] = (long (*)())printk;
     jmptab[YIELD] = (long (*)())do_scheduler;
     jmptab[MUTEX_INIT] = (long (*)())do_mutex_lock_init;
@@ -44,6 +41,9 @@ static void init_jmptab(void)
     jmptab[MUTEX_RELEASE] = (long (*)())do_mutex_lock_release;
 
     // TODO: [p2-task1] (S-core) initialize system call table.
+    jmptab[MOVE_CURSOR] = (long (*)())screen_move_cursor;
+    jmptab[WRITE] = (long (*)())screen_write;
+    jmptab[REFLUSH] = (long (*)())screen_reflush;
 }
 
 static void init_task_info(int app_info_loc, int app_info_size)
@@ -92,13 +92,11 @@ static void init_pcb_stack(
 static void init_pcb(void)
 {
     /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
-    // PCB for kernel
-    uint64_t entry[NUM_MAX_TASK + 1]; /* entry of all tasks */
 
     // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "sleep", "timer", "fly", "fly1", "fly2", "fly3", "fly4", "fly5"};
     // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "fly"};
     // char needed_tasks[][16] = {"fly1", "fly2", "fly3", "fly4", "fly5"};
-    char needed_tasks[][16]={"print1","print2","fly"};
+    char needed_tasks[][16] = {"print1", "print2",  "lock1", "lock2","sleep","timer","fly"};
     uint64_t entry_addr;
     int tasknum = 0;
     pid0_pcb.status = TASK_RUNNING;
@@ -106,7 +104,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 6; i++)
     {
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
@@ -119,13 +117,10 @@ static void init_pcb(void)
             pcb[tasknum].cursor_x = 0;
             pcb[tasknum].cursor_y = 0;
 
-
             init_pcb_stack(pcb[tasknum].kernel_sp, pcb[tasknum].user_sp, entry_addr, &pcb[tasknum]);
             // add to ready queue
             add_node_to_q(&pcb[tasknum].list, &ready_queue);
-
-            if (++tasknum > NUM_MAX_TASK) // total tasks should be less than the threshold
-                break;
+            tasknum++;
         }
     }
 
@@ -146,7 +141,6 @@ static void init_syscall(void)
     syscall[SYSCALL_LOCK_INIT] = (long (*)())do_mutex_lock_init;
     syscall[SYSCALL_LOCK_ACQ] = (long (*)())do_mutex_lock_acquire;
     syscall[SYSCALL_LOCK_RELEASE] = (long (*)())do_mutex_lock_release;
-    syscall[SYSCALL_SET_SCHE_WORKLOAD] = (long (*)())do_set_sche_workload;
 }
 /************************************************************/
 
@@ -183,17 +177,18 @@ int main(int app_info_loc, int app_info_size)
 
     // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's
-    bios_set_timer(get_ticks() + TIMER_INTERVAL);
+     bios_set_timer(get_ticks() + TIMER_INTERVAL);
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
+    printk("going to do_scheduler\n");
     while (1)
     {
         // If you do non-preemptive scheduling, it's used to surrender control
-         do_scheduler();
+        //do_scheduler();
 
         // If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
-        //enable_preempt();
-        //asm volatile("wfi");
+         enable_preempt();
+         asm volatile("wfi");
     }
 
     return 0;

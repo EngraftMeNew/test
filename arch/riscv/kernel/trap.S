@@ -11,10 +11,9 @@ ENTRY(setup_exception)
 
   //全局中断使能
   /* TODO: [p2-task4] enable interrupts globally */
-  addi    sp, sp, -8   
-  sd      ra, 0(sp)
-  call    enable_interrupt   //设置sstates.SIE=1
-  ld      ra, 0(sp)
-  addi    sp, sp, 8
+  csrr t0,sstatus
+  li t1,SR_SIE
+  or t0,t0,t1
+  csrw sstatus,t0
   ret
 ENDPROC(setup_exception)
