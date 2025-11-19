@@ -39,9 +39,7 @@ static void create_image(int nfiles, char *files[]);
 static void error(char *fmt, ...);
 static void read_ehdr(Elf64_Ehdr *ehdr, FILE *fp);
 static void read_phdr(Elf64_Phdr *phdr, FILE *fp, int ph, Elf64_Ehdr ehdr);
-static uint64_t get_entrypoint(Elf64_Ehdr ehdr);
 static uint32_t get_filesz(Elf64_Phdr phdr);
-static uint32_t get_memsz(Elf64_Phdr phdr);
 static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr);
 static void write_padding(FILE *img, int *phyaddr, int new_phyaddr);
 static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
@@ -186,20 +184,14 @@ static void read_phdr(Elf64_Phdr * phdr, FILE * fp, int ph,
     }
 }
 
-static uint64_t get_entrypoint(Elf64_Ehdr ehdr)
-{
-    return ehdr.e_entry;
-}
+
 
 static uint32_t get_filesz(Elf64_Phdr phdr)
 {
     return phdr.p_filesz;
 }
 
-static uint32_t get_memsz(Elf64_Phdr phdr)
-{
-    return phdr.p_memsz;
-}
+
 
 static void write_segment(Elf64_Phdr phdr, FILE *fp, FILE *img, int *phyaddr)
 {

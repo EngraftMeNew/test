@@ -26,7 +26,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
         if (code < IRQC_COUNT && irq_table[code])
             irq_table[code](regs, stval, scause);
         else
-            handle_other(regs, stval, scause); // 兜底，功能等价
+            handle_other(regs, stval, scause); 
     }
     else
     {
