@@ -96,7 +96,7 @@ static void init_pcb(void)
     // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "sleep", "timer", "fly", "fly1", "fly2", "fly3", "fly4", "fly5"};
     // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "fly"};
     // char needed_tasks[][16] = {"fly1", "fly2", "fly3", "fly4", "fly5"};
-    char needed_tasks[][16] = {"print1", "print2",  "lock1", "lock2","sleep","timer","fly"};
+    char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "sleep", "timer", "fly"};
     uint64_t entry_addr;
     int tasknum = 0;
     pid0_pcb.status = TASK_RUNNING;
@@ -104,7 +104,7 @@ static void init_pcb(void)
     pid0_pcb.list.next = NULL;
     init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 7; i++)
     {
         entry_addr = load_task_img(needed_tasks[i]);
         // create a PCB
@@ -184,11 +184,11 @@ int main(int app_info_loc, int app_info_size)
     while (1)
     {
         // If you do non-preemptive scheduling, it's used to surrender control
-        //do_scheduler();
+        // do_scheduler();
 
         // If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
-         enable_preempt();
-         asm volatile("wfi");
+        enable_preempt();
+        asm volatile("wfi");
     }
 
     return 0;

@@ -62,7 +62,7 @@ pcb_t *get_pcb(list_node_t *node)
 
 void do_scheduler(void)
 {
-    // 唤醒到点的睡眠进程
+    // TODO: [p2-task3] Check sleep queue to wake up PCBs
      check_sleeping();
 
     /************************************************************/
@@ -91,7 +91,6 @@ void do_scheduler(void)
     // printk("going to do switch_to\n");
     //  TODO: [p2-task1] switch_to current_running
     switch_to(prior_running, current_running);
-    // printk("switch_to finished");
 }
 
 void do_sleep(uint32_t sleep_time)

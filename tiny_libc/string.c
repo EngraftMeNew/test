@@ -2,7 +2,8 @@
 
 void memcpy(uint8_t *dest, const uint8_t *src, uint32_t len)
 {
-    for (; len != 0; len--) {
+    for (; len != 0; len--)
+    {
         *dest++ = *src++;
     }
 }
@@ -11,7 +12,8 @@ void memset(void *dest, uint8_t val, uint32_t len)
 {
     uint8_t *dst = (uint8_t *)dest;
 
-    for (; len != 0; len--) {
+    for (; len != 0; len--)
+    {
         *dst++ = val;
     }
 }
@@ -24,7 +26,8 @@ void bzero(void *dest, uint32_t len)
 int strlen(const char *src)
 {
     int i = 0;
-    while (src[i] != '\0') {
+    while (src[i] != '\0')
+    {
         i++;
     }
     return i;
@@ -32,8 +35,10 @@ int strlen(const char *src)
 
 int strcmp(const char *str1, const char *str2)
 {
-    while (*str1 && *str2) {
-        if (*str1 != *str2) {
+    while (*str1 && *str2)
+    {
+        if (*str1 != *str2)
+        {
             return (*str1) - (*str2);
         }
         ++str1;
@@ -54,7 +59,8 @@ char *strcpy(char *dest, const char *src)
 {
     char *tmp = dest;
 
-    while (*src) {
+    while (*src)
+    {
         *dest++ = *src++;
     }
 
@@ -67,11 +73,13 @@ char *strncpy(char *dest, const char *src, int n)
 {
     char *tmp = dest;
 
-    while (*src && n-- > 0) {
+    while (*src && n-- > 0)
+    {
         *dest++ = *src++;
     }
 
-    while (n-- > 0) {
+    while (n-- > 0)
+    {
         *dest++ = '\0';
     }
 
@@ -82,10 +90,12 @@ char *strcat(char *dest, const char *src)
 {
     char *tmp = dest;
 
-    while (*dest != '\0') {
+    while (*dest != '\0')
+    {
         dest++;
     }
-    while (*src) {
+    while (*src)
+    {
         *dest++ = *src++;
     }
 
