@@ -3,7 +3,7 @@
 #include <asm/regs.h>
 
 .macro SAVE_CONTEXT
-  /* TODO: [p2-task3] save all general purpose registers here! */
+  /*  save all general purpose registers here! */
   /* HINT: Pay attention to the function of tp and sp, and save them carefully! */
   sd sp, PCB_USER_SP(tp)    //user stack
   ld sp, PCB_KERNEL_SP(tp)  // kernel stack
@@ -57,7 +57,7 @@
    * space.
    */
 
-  /* TODO: [p2-task3] save sstatus, sepc, stval and scause on kernel stack */
+  /* save sstatus, sepc, stval and scause on kernel stack */
   /*保存关键CSR*/
   csrr t0, sstatus  
   csrr t1, sepc    
@@ -71,7 +71,7 @@
 .endm
 
 .macro RESTORE_CONTEXT
-  /* TODO: Restore all general purpose registers and sepc, sstatus */
+  /*  Restore all general purpose registers and sepc, sstatus */
   /* HINT: Pay attention to sp again! */
   ld x0, OFFSET_REG_ZERO(sp)
   ld ra, OFFSET_REG_RA(sp)
@@ -152,7 +152,7 @@ ENDPROC(disable_interrupt)
 ENTRY(switch_to)
   addi sp, sp, -(SWITCH_TO_SIZE)
 
-  /* TODO: [p2-task1] save all callee save registers on kernel stack,
+  /* save all callee save registers on kernel stack,
    * see the definition of `struct switchto_context` in sched.h*/
   sd sp, PCB_KERNEL_SP(a0)
 
@@ -172,7 +172,7 @@ ENTRY(switch_to)
   sd s10, SWITCH_TO_S10(sp)
   sd s11, SWITCH_TO_S11(sp)
 
-  /* TODO: [p2-task1] restore all callee save registers from kernel stack,
+  /* restore all callee save registers from kernel stack,
    * see the definition of `struct switchto_context` in sched.h*/
    # switch current running 
 
@@ -204,7 +204,7 @@ ENDPROC(switch_to)
 
 /*异常返回点*/
 ENTRY(ret_from_exception)
-  /* TODO: [p2-task3] restore context via provided macro and return to sepc */
+  /*  restore context via provided macro and return to sepc */
   /* HINT: remember to check your sp, does it point to the right address? */
   RESTORE_CONTEXT
   sret
@@ -215,15 +215,15 @@ ENDPROC(ret_from_exception)
 /*完成例外处理入口相关。内容：保存现场、根据 scause 寄存器的例外触发状态跳转到例外/中断分发函数*/
 ENTRY(exception_handler_entry)
 
-  /* TODO: [p2-task3] save context via the provided macro */
+  /* save context via the provided macro */
   SAVE_CONTEXT
 
-  /* TODO: [p2-task3] load ret_from_exception into $ra so that we can return to
+  /*  load ret_from_exception into $ra so that we can return to
    * ret_from_exception when interrupt_help complete.
    */
   
 
-  /* TODO: [p2-task3] call interrupt_helper
+  /* call interrupt_helper
    * NOTE: don't forget to pass parameters for it.
    */
   addi a0, sp, 0

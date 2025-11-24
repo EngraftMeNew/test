@@ -62,13 +62,13 @@ pcb_t *get_pcb(list_node_t *node)
 
 void do_scheduler(void)
 {
-    // TODO: [p2-task3] Check sleep queue to wake up PCBs
+    //  Check sleep queue to wake up PCBs
      check_sleeping();
 
     /************************************************************/
     /* Do not touch this comment. Reserved for future projects. */
     /************************************************************/
-    // TODO: [p2-task1] Modify the current_running pointer.
+    //  Modify the current_running pointer.
     //printk("this is in do_scheduler\n");
     pcb_t *prior_running;
     prior_running = current_running;
@@ -89,13 +89,13 @@ void do_scheduler(void)
     current_running = get_pcb(ready_node);
     current_running->status = TASK_RUNNING;
     // printk("going to do switch_to\n");
-    //  TODO: [p2-task1] switch_to current_running
+    //   switch_to current_running
     switch_to(prior_running, current_running);
 }
 
 void do_sleep(uint32_t sleep_time)
 {
-    // TODO: [p2-task3] sleep(seconds)
+    //  sleep(seconds)
     // NOTE: you can assume: 1 second = 1 `timebase` ticks
     // 1. block the current_running
     current_running->status = TASK_BLOCKED;
@@ -107,7 +107,7 @@ void do_sleep(uint32_t sleep_time)
 
 void do_block(list_node_t *pcb_node, list_head *queue)
 {
-    // TODO: [p2-task2] block the pcb task into the block queue
+    //  block the pcb task into the block queue
     pcb_t *tmp = get_pcb(pcb_node);
     tmp->status = TASK_BLOCKED;
     add_node_to_q(pcb_node, queue);
@@ -115,7 +115,7 @@ void do_block(list_node_t *pcb_node, list_head *queue)
 
 void do_unblock(list_node_t *pcb_node)
 {
-    // TODO: [p2-task2] unblock the `pcb` from the block queue
+    // unblock the `pcb` from the block queue
     delete_node_from_q(pcb_node);
     pcb_t *tmp = get_pcb(pcb_node);
     tmp->status = TASK_READY;

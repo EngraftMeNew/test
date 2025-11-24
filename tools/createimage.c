@@ -18,7 +18,7 @@
 
 #define NBYTES2SEC(nbytes) (((nbytes) / SECTOR_SIZE) + ((nbytes) % SECTOR_SIZE != 0))
 
-/* TODO: [p1-task4] design your own task_info_t */
+/*  design your own task_info_t */
 typedef struct
 {
     char task_name[16];
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-/* TODO: [p1-task4] assign your task_info_t somewhere in 'create_image' */
+/*  assign your task_info_t somewhere in 'create_image' */
 static void create_image(int nfiles, char *files[])
 {
     int tasknum = nfiles - 2;
@@ -139,7 +139,7 @@ static void create_image(int nfiles, char *files[])
 
         /* write padding bytes */
         /**
-         * TODO:
+         * 
          * 1. [p1-task3] do padding so that the kernel and every app program
          *  occupies the same number of sectors
          *
@@ -242,7 +242,7 @@ static void write_padding(FILE *img, int *phyaddr, int new_phyaddr)
 static void write_img_info(int nbytes_kernel, task_info_t *taskinfo,
                            short tasknum, FILE *img, int *taskinfo_addr)
 {
-    // TODO: [p1-task3] & [p1-task4] write image info to some certain places
+    //  write image info to some certain places
     // NOTE: os size, infomation about app-info sector(s) ...
     // 将kernal的size写进bootloader的末尾两个字节
     int nsec_kern = NBYTES2SEC(nbytes_kernel);

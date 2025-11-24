@@ -15,7 +15,7 @@ handler_t exc_table[EXCC_COUNT];
 // 根据scause判定中断/异常，再去表里调用具体函数
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-    // TODO: [p2-task3] & [p2-task4] interrupt handler.
+    // interrupt handler.
     // call corresponding handler by the value of `scause`
     // 高位=1表示中断；其余位为中断/异常编码
     uint64_t is_irq = (scause & SCAUSE_IRQ_MASK) != 0;
@@ -39,7 +39,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
-    // TODO: [p2-task4] clock interrupt handler.
+    // clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
     uint64_t next = get_ticks() + TIMER_INTERVAL;
     bios_set_timer(next); 
@@ -48,19 +48,19 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
 
 void init_exception(void)
 {
-    /* TODO: [p2-task3] initialize exc_table */
+    /*  initialize exc_table */
     /* NOTE: handle_syscall, handle_other, etc.*/
     for (int i = 0; i < EXCC_COUNT; ++i)
         exc_table[i] = handle_other;
     exc_table[EXCC_SYSCALL] = handle_syscall;
 
-    /* TODO: [p2-task4] initialize irq_table */
+    /* initialize irq_table */
     /* NOTE: handle_int, handle_other, etc.*/
     for (int i = 0; i < IRQC_COUNT; ++i)
         irq_table[i] = handle_other;
     irq_table[IRQC_S_TIMER] = handle_irq_timer;
 
-    /* TODO: [p2-task3] set up the entrypoint of exceptions */
+    /*  set up the entrypoint of exceptions */
     setup_exception();
 }
 

@@ -40,7 +40,7 @@ static void init_jmptab(void)
     jmptab[MUTEX_ACQ] = (long (*)())do_mutex_lock_acquire;
     jmptab[MUTEX_RELEASE] = (long (*)())do_mutex_lock_release;
 
-    // TODO: [p2-task1] (S-core) initialize system call table.
+    //  (S-core) initialize system call table.
     jmptab[MOVE_CURSOR] = (long (*)())screen_move_cursor;
     jmptab[WRITE] = (long (*)())screen_write;
     jmptab[REFLUSH] = (long (*)())screen_reflush;
@@ -48,7 +48,7 @@ static void init_jmptab(void)
 
 static void init_task_info(int app_info_loc, int app_info_size)
 {
-    // TODO: [p1-task4] Init 'tasks' array via reading app-info sector
+    // Init 'tasks' array via reading app-info sector
     // NOTE: You need to get some related arguments from bootblock first
     int start_sec, blocknums;
     start_sec = app_info_loc / SECTOR_SIZE;
@@ -65,7 +65,7 @@ static void init_pcb_stack(
     ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
     pcb_t *pcb)
 {
-    /* TODO: [p2-task3] initialization of registers on kernel stack
+    /*  initialization of registers on kernel stack
      * HINT: sp, ra, sepc, sstatus
      * NOTE: To run the task in user mode, you should set corresponding bits
      *     of sstatus(SPP, SPIE, etc.).
@@ -78,7 +78,7 @@ static void init_pcb_stack(
     pt_regs->sstatus = SR_SPIE;               // SPIE set to 1
     pt_regs->sepc = (uint64_t)entry_point;
 
-    /* TODO: [p2-task1] set sp to simulate just returning from switch_to
+    /* set sp to simulate just returning from switch_to
      * NOTE: you should prepare a stack, and push some values to
      * simulate a callee-saved context.
      */
@@ -91,7 +91,7 @@ static void init_pcb_stack(
 
 static void init_pcb(void)
 {
-    /* TODO: [p2-task1] load needed tasks and init their corresponding PCB */
+    /*  load needed tasks and init their corresponding PCB */
 
     // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "sleep", "timer", "fly", "fly1", "fly2", "fly3", "fly4", "fly5"};
     // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "fly"};
@@ -124,13 +124,13 @@ static void init_pcb(void)
         }
     }
 
-    /* TODO: [p2-task1] remember to initialize 'current_running' */
+    /* remember to initialize 'current_running' */
     current_running = &pid0_pcb;
 }
 
 static void init_syscall(void)
 {
-    // TODO: [p2-task3] initialize system call table.
+    // initialize system call table.
     syscall[SYSCALL_SLEEP] = (long (*)())do_sleep;
     syscall[SYSCALL_YIELD] = (long (*)())do_scheduler;
     syscall[SYSCALL_WRITE] = (long (*)())screen_write;
@@ -175,7 +175,7 @@ int main(int app_info_loc, int app_info_size)
     init_screen();
     printk("> [INIT] SCREEN initialization succeeded.\n");
 
-    // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
+    //  Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's
      bios_set_timer(get_ticks() + TIMER_INTERVAL);
 
