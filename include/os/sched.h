@@ -54,7 +54,8 @@ typedef struct switchto_context
     reg_t regs[14];
 } switchto_context_t;
 
-typedef enum {
+typedef enum
+{
     TASK_BLOCKED,
     TASK_RUNNING,
     TASK_READY,
@@ -97,7 +98,7 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-register pcb_t * current_running asm("tp");
+register pcb_t *current_running asm("tp");
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
@@ -108,8 +109,11 @@ extern void switch_to(pcb_t *prev, pcb_t *next);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
+pcb_t *get_pcb(list_node_t *node);
+
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
+
 
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/

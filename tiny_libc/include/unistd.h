@@ -16,6 +16,7 @@ int sys_mutex_init(int key);
 void sys_mutex_acquire(int mutex_idx);
 void sys_mutex_release(int mutex_idx);
 
+
 /************************************************************/
 /* TODO: [P3 task1] ps, getchar */
 void sys_ps(void);

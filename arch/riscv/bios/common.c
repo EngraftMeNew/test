@@ -1,8 +1,13 @@
+/*
+对底层bios提供的服务进行搏封装，暴露统一的C接口
+*/
 #include <common.h>
 #include <asm/biosdef.h>
 
+//BIOS调度入口的函数指针地址
 #define BIOS_FUNC_ENTRY 0x50150000
 #define IGNORE 0
+
 
 static long call_bios(long which, long arg0, long arg1, long arg2, long arg3, long arg4)
 {
