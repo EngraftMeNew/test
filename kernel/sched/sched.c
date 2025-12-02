@@ -3,6 +3,9 @@
 #include <os/sched.h>
 #include <os/time.h>
 #include <os/mm.h>
+#include <os/loader.h>
+#include <os/task.h>
+#include <os/string.h>
 #include <screen.h>
 #include <printk.h>
 #include <assert.h>
@@ -63,13 +66,13 @@ pcb_t *get_pcb(list_node_t *node)
 void do_scheduler(void)
 {
     //  Check sleep queue to wake up PCBs
-     check_sleeping();
+    check_sleeping();
 
     /************************************************************/
     /* Do not touch this comment. Reserved for future projects. */
     /************************************************************/
     //  Modify the current_running pointer.
-    //printk("this is in do_scheduler\n");
+    // printk("this is in do_scheduler\n");
     pcb_t *prior_running;
     prior_running = current_running;
 
@@ -98,7 +101,7 @@ void do_sleep(uint32_t sleep_time)
     //  sleep(seconds)
     // NOTE: you can assume: 1 second = 1 `timebase` ticks
     // 1. block the current_running
-    current_running->status = TASK_BLOCKED;
+    do_block(&current_running->list, &sleep_queue);
     // 2. set the wake up time for the blocked task
     current_running->wakeup_time = get_timer() + sleep_time;
     // 3. reschedule because the current_running is blocked.
@@ -120,4 +123,179 @@ void do_unblock(list_node_t *pcb_node)
     pcb_t *tmp = get_pcb(pcb_node);
     tmp->status = TASK_READY;
     add_node_to_q(pcb_node, &ready_queue);
+}
+
+void do_process_show()
+{
+    static char *states[3] = {
+        "BLOCKED", "RUNNING", "READY"};
+    screen_write("[Process table]:\n");
+    for (int i = 0; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb[i].status == TASK_BLOCKED)
+            printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, states[0]);
+        else if (pcb[i].status == TASK_RUNNING)
+            printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, states[1]);
+        else
+            printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, states[2]);
+    }
+}
+
+pid_t do_exec(char *name, int argc, char *argv[])
+{
+    char **argv_ptr = NULL;
+    int index = -1;
+    uint64_t entry_point = 0;
+    uint64_t user_sp;
+    pid_t ret = 0; // 默认失败返回 0
+
+    index = search_free_pcb();
+    if (index == -1)
+        return 0;
+
+    entry_point = load_task_img(name);
+    if (entry_point == 0)
+        return 0;
+
+    // 分配内核栈和用户栈
+    pcb[index].kernel_sp = (reg_t)(allocKernelPage(1) + PAGE_SIZE);
+    pcb[index].user_sp = (reg_t)(allocUserPage(1) + PAGE_SIZE);
+    user_sp = pcb[index].user_sp;
+
+    // 分配 pid / 初始化通用字段
+    task_num++;
+    pcb[index].pid = task_num;
+    pcb[index].status = TASK_READY;
+    pcb[index].cursor_x = 0;
+    pcb[index].cursor_y = 0;
+    pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
+    pcb[index].list.prev = pcb[index].list.next = NULL;
+    // 参数搬到用户栈：先预留 argv 指针数组
+    user_sp -= sizeof(char *) * argc;
+    argv_ptr = (char **)user_sp;
+
+    for (int i = argc - 1; i >= 0; i--)
+    {
+        int len = strlen(argv[i]) + 1; // '\0'
+        user_sp -= len;
+        argv_ptr[i] = (char *)user_sp;
+        strcpy((char *)user_sp, argv[i]);
+    }
+
+    // 对齐
+    pcb[index].user_sp = (reg_t)ROUNDDOWN(user_sp, 128);
+
+    init_pcb_stack(pcb[index].kernel_sp,
+                   pcb[index].user_sp,
+                   entry_point,
+                   &pcb[index],
+                   argc,
+                   argv_ptr);
+
+    add_node_to_q(&pcb[index].list, &ready_queue);
+
+    ret = pcb[index].pid;
+
+    return ret;
+}
+
+pid_t do_getpid()
+{
+    return current_running->pid;
+}
+
+int do_waitpid(pid_t pid)
+{
+    pcb_t *target = NULL;
+
+    for (int i = 0; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb[i].pid == pid)
+        {
+            target = &pcb[i];
+            break;
+        }
+    }
+
+    if (target == NULL)
+    {
+        return 0;
+    }
+
+    if (target->status == TASK_EXITED)
+    {
+        return pid;
+    }
+
+    do_block(&current_running->list, &target->wait_list);
+    do_scheduler();
+
+    return pid;
+}
+
+void do_exit(void)
+{
+    //  exit the current_running task.
+    current_running->status = TASK_EXITED;
+
+    // unblock all the tasks in wait_list
+    release_pcb(current_running);
+
+    // reschedule because the current_running is exited.
+    do_scheduler();
+}
+
+int do_kill(pid_t pid)
+{
+    pcb_t *target = NULL;
+
+    for (int i = 0; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb[i].pid == pid && pcb[i].status != TASK_EXITED)
+        {
+            target = &pcb[i];
+            pcb[i].status = TASK_EXITED;
+            pcb_release(target);
+            return 1;
+        }
+    }
+
+    return 1;
+}
+
+void release_all_lock(pid_t pid)
+{
+    for (int i = 0; i < LOCK_NUM; i++)
+    {
+        if (mlocks[i].pid == pid)
+            do_mutex_lock_release(i);
+    }
+}
+
+int search_free_pcb()
+{
+    for (int i = 0; i < NUM_MAX_TASK; i++)
+    {
+        if (pcb[i].status == TASK_EXITED)
+            return i;
+        return -1;
+    }
+}
+
+void pcb_release(pcb_t *p)
+{
+    if (current_running->pid != p->pid)
+        delete_node_from_q(&(p->list));
+    free_block_list(&(p->wait_list));
+    release_all_lock(p->pid);
+}
+
+void free_block_list(list_node_t *head)
+{
+    list_node_t *p, *next;
+    for (p = head->next; p != head; p = next)
+    {
+        next = p->next;
+        do_unblock(p);
+    }
 }

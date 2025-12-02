@@ -64,13 +64,13 @@ void do_mutex_lock_acquire(int mlock_idx) // 申请
 {
     /* acquire mutex lock */
     if (spin_lock_try_acquire(&mlocks[mlock_idx].lock))
+    {
+        mlocks[mlock_idx].pid = current_running->pid;
         return;
+    }
     // 获取锁失败
     do_block(&current_running->list, &mlocks[mlock_idx].block_queue);
-    pcb_t *prior_running = current_running;
-    current_running = get_pcb(seek_ready_node());
-    current_running->status = TASK_RUNNING;
-    switch_to(prior_running, current_running);
+    do_scheduler();
 }
 
 // 释放
@@ -82,10 +82,12 @@ void do_mutex_lock_release(int mlock_idx)
 
     if (p == head) // 没有阻塞
     {
+        mlocks[mlock_idx].pid = -1;
         spin_lock_release(&mlocks[mlock_idx].lock);
     }
     else
     {
+        mlocks[mlock_idx].pid = get_pcb(p)->pid;
         do_unblock(p);
         spin_lock_release(&mlocks[mlock_idx].lock);
     }

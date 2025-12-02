@@ -114,14 +114,11 @@ pcb_t *get_pcb(list_node_t *node);
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
 
-
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/
-#ifdef S_CORE
-extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
-#else
+
 extern pid_t do_exec(char *name, int argc, char *argv[]);
-#endif
+
 extern void do_exit(void);
 extern int do_kill(pid_t pid);
 extern int do_waitpid(pid_t pid);
@@ -129,4 +126,9 @@ extern void do_process_show();
 extern pid_t do_getpid();
 /************************************************************/
 
+extern void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, pcb_t *pcb, int argc, char *argv[]);
+int search_free_pcb();
+void release_pcb(pcb_t *p);
+void free_block_list(list_node_t *haed);
+void release_all_lock(pid_t pid);
 #endif

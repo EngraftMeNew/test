@@ -21,7 +21,7 @@ extern void ret_from_exception();
 
 // Task info array
 task_info_t tasks[TASK_MAXNUM];
-
+int task_num = 0;
 static void init_jmptab(void)
 {
     volatile long (*(*jmptab))() = (volatile long (*(*))())KERNEL_JMPTAB_BASE;
@@ -46,7 +46,7 @@ static void init_jmptab(void)
     jmptab[REFLUSH] = (long (*)())screen_reflush;
 }
 
-static void init_task_info(int app_info_loc, int app_info_size)
+void init_task_info(int app_info_loc, int app_info_size)
 {
     // Init 'tasks' array via reading app-info sector
     // NOTE: You need to get some related arguments from bootblock first
@@ -61,9 +61,9 @@ static void init_task_info(int app_info_loc, int app_info_size)
 }
 
 /************************************************************/
-static void init_pcb_stack(
+void init_pcb_stack(
     ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point,
-    pcb_t *pcb)
+    pcb_t *pcb, int argc, char *argv[])
 {
     /*  initialization of registers on kernel stack
      * HINT: sp, ra, sepc, sstatus
@@ -77,6 +77,8 @@ static void init_pcb_stack(
     pt_regs->regs[4] = (uint64_t)pcb;         // tp
     pt_regs->sstatus = SR_SPIE;               // SPIE set to 1
     pt_regs->sepc = (uint64_t)entry_point;
+    pt_regs->regs[10] = (reg_t)argc; // a0 = argc
+    pt_regs->regs[11] = (reg_t)argv; // a1 = argv
 
     /* set sp to simulate just returning from switch_to
      * NOTE: you should prepare a stack, and push some values to
@@ -93,35 +95,15 @@ static void init_pcb(void)
 {
     /*  load needed tasks and init their corresponding PCB */
 
-    // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "sleep", "timer", "fly", "fly1", "fly2", "fly3", "fly4", "fly5"};
-    // char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "fly"};
-    // char needed_tasks[][16] = {"fly1", "fly2", "fly3", "fly4", "fly5"};
-    char needed_tasks[][16] = {"print1", "print2", "lock1", "lock2", "sleep", "timer", "fly"};
     uint64_t entry_addr;
-    int tasknum = 0;
+
     pid0_pcb.status = TASK_RUNNING;
     pid0_pcb.list.prev = NULL;
     pid0_pcb.list.next = NULL;
-    init_pcb_stack(pid0_pcb.kernel_sp, pid0_pcb.user_sp, (uint64_t)ret_from_exception, &pid0_pcb);
     // load task by name;
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < NUM_MAX_TASK; i++)
     {
-        entry_addr = load_task_img(needed_tasks[i]);
-        // create a PCB
-        if (entry_addr != 0)
-        {
-            pcb[tasknum].kernel_sp = (reg_t)(allocKernelPage(1) + PAGE_SIZE); // 分配一页
-            pcb[tasknum].user_sp = (reg_t)(allocUserPage(1) + PAGE_SIZE);
-            pcb[tasknum].pid = tasknum + 1; // pid 0 is for kernel
-            pcb[tasknum].status = TASK_READY;
-            pcb[tasknum].cursor_x = 0;
-            pcb[tasknum].cursor_y = 0;
-
-            init_pcb_stack(pcb[tasknum].kernel_sp, pcb[tasknum].user_sp, entry_addr, &pcb[tasknum]);
-            // add to ready queue
-            add_node_to_q(&pcb[tasknum].list, &ready_queue);
-            tasknum++;
-        }
+        pcb[i].status = TASK_EXITED;
     }
 
     /* remember to initialize 'current_running' */
@@ -141,6 +123,15 @@ static void init_syscall(void)
     syscall[SYSCALL_LOCK_INIT] = (long (*)())do_mutex_lock_init;
     syscall[SYSCALL_LOCK_ACQ] = (long (*)())do_mutex_lock_acquire;
     syscall[SYSCALL_LOCK_RELEASE] = (long (*)())do_mutex_lock_release;
+    syscall[SYSCALL_PS] = (long (*)())do_process_show;
+    syscall[SYSCALL_CLEAR] = (long (*)())screen_clear;
+    syscall[SYSCALL_EXEC] = (long (*)())do_exec;
+    syscall[SYSCALL_WAITPID] = (long (*)())do_waitpid;
+    syscall[SYSCALL_EXIT] = (long (*)())do_exit;
+    syscall[SYSCALL_KILL] = (long (*)())do_kill;
+    syscall[SYSCALL_GETPID] = (long (*)())do_getpid;
+    syscall[SYSCALL_READCH] = (long (*)())bios_getchar;
+    syscall[SYSCALL_WRITECH] = (long (*)())screen_write_ch;
 }
 /************************************************************/
 
@@ -178,6 +169,8 @@ int main(int app_info_loc, int app_info_size)
     //  Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's
      bios_set_timer(get_ticks() + TIMER_INTERVAL);
+
+    do_exec("shell", 0, NULL);
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
     printk("going to do_scheduler\n");

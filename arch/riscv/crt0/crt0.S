@@ -6,7 +6,6 @@
 ENTRY(_start)
 
     /* setup C runtime: 建立栈帧，保存 ra/s0 */
-    addi    t2,sp,0
     la      t0, __bss_start   
     la      t1, __BSS_END__    
 
@@ -15,21 +14,15 @@ clear:
     add     t0, t0, 4
     bltu    t0, t1, clear
 
-    addi sp, sp, -16
-    sd ra, 0(sp)
-    sd t2, 8(sp)
+
 
     jal    main
 
-    ld      ra, 0(sp)
-    ld      t2, 8(sp)
-    addi    sp, sp, 16
-    addi    sp,t2,0
-    jalr      ra
 
     /************************************************************/
     /* TODO: [P3] call sys_exit */
     /************************************************************/
+    call sys_exit
 // while(1) loop, unreachable here
 loop:
     wfi

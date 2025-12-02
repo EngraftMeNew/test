@@ -32,7 +32,8 @@
 
 #define LOCK_NUM 16
 
-typedef enum {
+typedef enum
+{
     UNLOCKED,
     LOCKED,
 } lock_status_t;
@@ -47,8 +48,11 @@ typedef struct mutex_lock
     spin_lock_t lock;
     list_head block_queue;
     int key;
+    int pid;  //who hold the lock
 } mutex_lock_t;
 
+mutex_lock_t mlocks[LOCK_NUM];
+extern int lock_used_num;
 void init_locks(void);
 
 void spin_lock_init(spin_lock_t *lock);
@@ -111,8 +115,8 @@ typedef struct mailbox
 void init_mbox();
 int do_mbox_open(char *name);
 void do_mbox_close(int mbox_idx);
-int do_mbox_send(int mbox_idx, void * msg, int msg_length);
-int do_mbox_recv(int mbox_idx, void * msg, int msg_length);
+int do_mbox_send(int mbox_idx, void *msg, int msg_length);
+int do_mbox_recv(int mbox_idx, void *msg, int msg_length);
 
 /************************************************************/
 
