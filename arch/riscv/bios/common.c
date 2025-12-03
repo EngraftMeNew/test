@@ -4,15 +4,14 @@
 #include <common.h>
 #include <asm/biosdef.h>
 
-//BIOS调度入口的函数指针地址
+// BIOS调度入口的函数指针地址
 #define BIOS_FUNC_ENTRY 0x50150000
 #define IGNORE 0
 
-
 static long call_bios(long which, long arg0, long arg1, long arg2, long arg3, long arg4)
 {
-    long (*bios_func)(long,long,long,long,long,long,long,long) = \
-        (long (*)(long,long,long,long,long,long,long,long))BIOS_FUNC_ENTRY;
+    long (*bios_func)(long, long, long, long, long, long, long, long) =
+        (long (*)(long, long, long, long, long, long, long, long))BIOS_FUNC_ENTRY;
 
     return bios_func(arg0, arg1, arg2, arg3, arg4, IGNORE, IGNORE, which);
 }
@@ -34,14 +33,14 @@ int port_read_ch(void)
 
 int sd_read(unsigned mem_address, unsigned num_of_blocks, unsigned block_id)
 {
-    return (int)call_bios((long)BIOS_SDREAD, (long)mem_address, \
-                            (long)num_of_blocks, (long)block_id, IGNORE, IGNORE);
+    return (int)call_bios((long)BIOS_SDREAD, (long)mem_address,
+                          (long)num_of_blocks, (long)block_id, IGNORE, IGNORE);
 }
 
 int sd_write(unsigned mem_address, unsigned num_of_blocks, unsigned block_id)
 {
-    return (int)call_bios((long)BIOS_SDWRITE, (long)mem_address, \
-                            (long)num_of_blocks, (long)block_id, IGNORE, IGNORE);
+    return (int)call_bios((long)BIOS_SDWRITE, (long)mem_address,
+                          (long)num_of_blocks, (long)block_id, IGNORE, IGNORE);
 }
 
 void set_timer(uint64_t stime_value)

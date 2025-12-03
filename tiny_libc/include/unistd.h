@@ -20,11 +20,12 @@ void sys_mutex_release(int mutex_idx);
 void sys_ps(void);
 int sys_getchar(void);
 void sys_write_ch(char);
+void sys_clear(void);
 /* TODO: [P3 task1] exec, exit, kill waitpid */
 // S-core
-pid_t sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
+// pid_t sys_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
 // A/C-core
-// pid_t  sys_exec(char *name, int argc, char **argv);
+pid_t sys_exec(char *name, int argc, char **argv);
 
 void sys_exit(void);
 int sys_kill(pid_t pid);

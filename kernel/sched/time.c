@@ -48,7 +48,7 @@ void check_sleeping(void)
         }
 
         do_unblock(p);
-        t->status = TASK_READY;
-        add_node_to_q(p, &ready_queue);
+        // t->status = TASK_READY;
+        // add_node_to_q(p, &ready_queue);
     }
 }

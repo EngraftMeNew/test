@@ -91,7 +91,7 @@ void init_pcb_stack(
     pt_switchto->regs[1] = pcb->kernel_sp;               // sp
 }
 
-static void init_pcb(void)
+void init_pcb(void)
 {
     /*  load needed tasks and init their corresponding PCB */
 
@@ -132,6 +132,23 @@ static void init_syscall(void)
     syscall[SYSCALL_GETPID] = (long (*)())do_getpid;
     syscall[SYSCALL_READCH] = (long (*)())bios_getchar;
     syscall[SYSCALL_WRITECH] = (long (*)())screen_write_ch;
+    /*barrier*/
+    syscall[SYSCALL_BARR_INIT] = (long (*)())do_barrier_init;
+    syscall[SYSCALL_BARR_WAIT] = (long (*)())do_barrier_wait;
+    syscall[SYSCALL_BARR_DESTROY] = (long (*)())do_barrier_destroy;
+
+    /*condition*/
+    syscall[SYSCALL_COND_INIT] = (long (*)())do_condition_init;
+    syscall[SYSCALL_COND_WAIT] = (long (*)())do_condition_wait;
+    syscall[SYSCALL_COND_SIGNAL] = (long (*)())do_condition_signal;
+    syscall[SYSCALL_COND_BROADCAST] = (long (*)())do_condition_broadcast;
+    syscall[SYSCALL_COND_DESTROY] = (long (*)())do_condition_destroy;
+
+    /*mailbox*/
+    syscall[SYSCALL_MBOX_SEND] = (long (*)())do_mbox_send;
+    syscall[SYSCALL_MBOX_RECV] = (long (*)())do_mbox_recv;
+    syscall[SYSCALL_MBOX_OPEN] = (long (*)())do_mbox_open;
+    syscall[SYSCALL_MBOX_CLOSE] = (long (*)())do_mbox_close;
 }
 /************************************************************/
 
@@ -158,6 +175,16 @@ int main(int app_info_loc, int app_info_size)
     init_exception();
     printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
+    // init barriers
+    init_barriers();
+    printk("> [INIT] Barrier initialization succeeded.\n");
+
+    init_conditions();
+    printk("> [INIT] Condition initialization succeeded.\n");
+
+    init_mbox();
+    printk("> [INIT] Mailbox initialization succeeded.\n");
+
     // Init system call table (0_0)
     init_syscall();
     printk("> [INIT] System call initialized successfully.\n");
@@ -168,12 +195,12 @@ int main(int app_info_loc, int app_info_size)
 
     //  Setup timer interrupt and enable all interrupt globally
     // NOTE: The function of sstatus.sie is different from sie's
-     bios_set_timer(get_ticks() + TIMER_INTERVAL);
+    bios_set_timer(get_ticks() + TIMER_INTERVAL);
 
     do_exec("shell", 0, NULL);
 
     // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
-    printk("going to do_scheduler\n");
+    // printk("going to do_scheduler\n");
     while (1)
     {
         // If you do non-preemptive scheduling, it's used to surrender control

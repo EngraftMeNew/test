@@ -147,21 +147,36 @@ int main(void)
                 printf("usage: exec <program> [args...] [&]\n");
                 continue;
             }
+
             int background = 0;
             if (!strcmp(argv[argc - 1], "&"))
                 background = 1;
-            int exec_argc = argc - 1 - (background ? 1 : 0);
-            char **exec_argv = &argv[1];
-            pid_t pid = sys_exec(exec_argv[0], exec_argc, exec_argv);
+
+            // 去掉 "exec" 本身，以及末尾的 "&"（如果有）
+            int arg_start = 1;
+            int arg_end = argc - (background ? 1 : 0); // 开区间 [arg_start, arg_end)
+
+            int exec_argc = arg_end - arg_start; // 子进程看到的 argc
+            char *exec_argv[MAX_ARG_NUM];
+
+            // 让 exec_argv[0] = 程序名，后面是参数
+            for (int i = 0; i < exec_argc; i++)
+            {
+                exec_argv[i] = argv[arg_start + i]; // argv[1] -> "add", argv[2] -> "5", ...
+            }
+
+            // name 就是程序名，也可以直接用 exec_argv[0]
+            char *prog_name = exec_argv[0];
+
+            pid_t pid = sys_exec(prog_name, exec_argc, exec_argv);
             if (pid == 0)
             {
-                printf("exec failed: %s\n", exec_argv[0]);
+                printf("pid =0 ,exec failed: %s\n", prog_name);
                 continue;
             }
 
             printf("pid = %d\n", pid);
 
-            /* --- 是否需要等待 --- */
             if (!background)
             {
                 sys_waitpid(pid);

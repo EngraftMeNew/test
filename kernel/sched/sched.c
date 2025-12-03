@@ -30,6 +30,8 @@ list_node_t *seek_ready_node()
 {
     list_node_t *p = ready_queue.next;
     // delete p from queue
+    if (p == &ready_queue)
+        return &pid0_pcb.list;
     delete_node_from_q(p);
     return p;
 }
@@ -125,19 +127,19 @@ void do_unblock(list_node_t *pcb_node)
     add_node_to_q(pcb_node, &ready_queue);
 }
 
-void do_process_show()
+void do_process_show(void)
 {
-    static char *states[3] = {
-        "BLOCKED", "RUNNING", "READY"};
+    static const char *states[] = {
+        "BLOCKED", "RUNNING", "READY", "EXITED"};
+
     screen_write("[Process table]:\n");
     for (int i = 0; i < NUM_MAX_TASK; i++)
     {
-        if (pcb[i].status == TASK_BLOCKED)
-            printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, states[0]);
-        else if (pcb[i].status == TASK_RUNNING)
-            printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, states[1]);
-        else
-            printk("[%d] PID : %d  STATUS : %s \n", i, pcb[i].pid, states[2]);
+        if (pcb[i].status == TASK_EXITED)
+            continue; // 不打印空槽位
+
+        printk("[%d] PID : %d  STATUS : %s\n",
+               i, pcb[i].pid, states[pcb[i].status]);
     }
 }
 
@@ -255,7 +257,7 @@ int do_kill(pid_t pid)
         {
             target = &pcb[i];
             pcb[i].status = TASK_EXITED;
-            pcb_release(target);
+            release_pcb(target);
             return 1;
         }
     }
@@ -278,11 +280,11 @@ int search_free_pcb()
     {
         if (pcb[i].status == TASK_EXITED)
             return i;
-        return -1;
     }
+    return -1;
 }
 
-void pcb_release(pcb_t *p)
+void release_pcb(pcb_t *p)
 {
     if (current_running->pid != p->pid)
         delete_node_from_q(&(p->list));

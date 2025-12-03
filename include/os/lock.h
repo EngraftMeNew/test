@@ -48,10 +48,10 @@ typedef struct mutex_lock
     spin_lock_t lock;
     list_head block_queue;
     int key;
-    int pid;  //who hold the lock
+    int pid; // who hold the lock
 } mutex_lock_t;
 
-mutex_lock_t mlocks[LOCK_NUM];
+extern mutex_lock_t mlocks[LOCK_NUM];
 extern int lock_used_num;
 void init_locks(void);
 
@@ -65,12 +65,24 @@ void do_mutex_lock_acquire(int mlock_idx);
 void do_mutex_lock_release(int mlock_idx);
 
 /************************************************************/
+typedef enum
+{
+    FREE, // 空闲barrier
+    USED,
+} use_status_t;
+
 typedef struct barrier
 {
     // TODO [P3-TASK2 barrier]
+    int goal;     // 目标人数
+    int wait_num; // 等待人数
+    list_head wait_list;
+    int key; // 用户态看到的id
+    use_status_t state;
 } barrier_t;
 
 #define BARRIER_NUM 16
+extern barrier_t barriers[BARRIER_NUM];
 
 void init_barriers(void);
 int do_barrier_init(int key, int goal);
@@ -80,10 +92,13 @@ void do_barrier_destroy(int bar_idx);
 typedef struct condition
 {
     // TODO [P3-TASK2 condition]
+    list_head wait_list;
+    int key;
+    use_status_t state; // 记录是否被使用
 } condition_t;
 
 #define CONDITION_NUM 16
-
+extern condition_t conditions[CONDITION_NUM];
 void init_conditions(void);
 int do_condition_init(int key);
 void do_condition_wait(int cond_idx, int mutex_idx);
@@ -105,13 +120,22 @@ void do_semaphore_down(int sema_idx);
 void do_semaphore_destroy(int sema_idx);
 
 #define MAX_MBOX_LENGTH (64)
+#define NAME_LEN 20
 
 typedef struct mailbox
 {
     // TODO [P3-TASK2 mailbox]
+    char name[NAME_LEN];              // 邮箱名字
+    char buffer[MAX_MBOX_LENGTH + 1]; // 环形缓冲区
+    int write_pos;                    // 下一个写入位置（逻辑偏移）
+    int read_pos;                     // 下一个读出位置（逻辑偏移）
+    int ref_count;                    // 当前打开该邮箱的进程数
+    list_head wait_full_queue;        // 因邮箱满而阻塞的进程队列
+    list_head wait_empty_queue;       // 因邮箱空而阻塞的进程队列
 } mailbox_t;
 
 #define MBOX_NUM 16
+extern mailbox_t mailboxes[MBOX_NUM];
 void init_mbox();
 int do_mbox_open(char *name);
 void do_mbox_close(int mbox_idx);
