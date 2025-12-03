@@ -204,6 +204,7 @@ ENDPROC(switch_to)
 
 /*异常返回点*/
 ENTRY(ret_from_exception)
+  call unlock_kernel
   /*  restore context via provided macro and return to sepc */
   /* HINT: remember to check your sp, does it point to the right address? */
   RESTORE_CONTEXT
@@ -217,7 +218,7 @@ ENTRY(exception_handler_entry)
 
   /* save context via the provided macro */
   SAVE_CONTEXT
-
+  call lock_kernel
   /*  load ret_from_exception into $ra so that we can return to
    * ret_from_exception when interrupt_help complete.
    */

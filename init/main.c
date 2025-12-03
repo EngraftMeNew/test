@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <type.h>
 #include <csr.h>
+#include <os/smp.h>
 
 extern void ret_from_exception();
 
@@ -100,6 +101,10 @@ void init_pcb(void)
     pid0_pcb.status = TASK_RUNNING;
     pid0_pcb.list.prev = NULL;
     pid0_pcb.list.next = NULL;
+    s_pid0_pcb.status = TASK_READY;
+    s_pid0_pcb.list.prev = NULL;
+    s_pid0_pcb.list.next = NULL;
+
     // load task by name;
     for (int i = 0; i < NUM_MAX_TASK; i++)
     {
@@ -107,7 +112,8 @@ void init_pcb(void)
     }
 
     /* remember to initialize 'current_running' */
-    current_running = &pid0_pcb;
+    current_running[0] = &pid0_pcb;
+    current_running[1] = &s_pid0_pcb;
 }
 
 static void init_syscall(void)
@@ -154,59 +160,91 @@ static void init_syscall(void)
 
 int main(int app_info_loc, int app_info_size)
 {
-    // Init jump table provided by kernel and bios(ΦωΦ)
-    init_jmptab();
+    int tmp_cpu_id = get_current_cpu_id();
 
-    // Init task information (〃'▽'〃)
-    init_task_info(app_info_loc, app_info_size);
+    if (tmp_cpu_id == 0)
+    {
+        // ------------ 只在 CPU0 上做的一次性初始化 ------------
 
-    // Init Process Control Blocks |•'-'•) ✧
-    init_pcb();
-    printk("> [INIT] PCB initialization succeeded.\n");
+        // SMP 初始化 + 大内核锁
+        smp_init();
+        lock_kernel();
 
-    // Read CPU frequency (｡•ᴗ-)_
-    time_base = bios_read_fdt(TIMEBASE);
+        // Init jump table provided by kernel and bios(ΦωΦ)
+        init_jmptab();
 
-    // Init lock mechanism o(´^｀)o
-    init_locks();
-    printk("> [INIT] Lock mechanism initialization succeeded.\n");
+        // Init task information (〃'▽'〃)
+        init_task_info(app_info_loc, app_info_size);
 
-    // Init interrupt (^_^)
-    init_exception();
-    printk("> [INIT] Interrupt processing initialization succeeded.\n");
+        // Init Process Control Blocks |•'-'•) ✧
+        init_pcb();
+        printk("> [INIT] PCB initialization succeeded.\n");
 
-    // init barriers
-    init_barriers();
-    printk("> [INIT] Barrier initialization succeeded.\n");
+        // Read CPU frequency (｡•ᴗ-)_
+        time_base = bios_read_fdt(TIMEBASE);
 
-    init_conditions();
-    printk("> [INIT] Condition initialization succeeded.\n");
+        // Init lock mechanism o(´^｀)o
+        init_locks();
+        printk("> [INIT] Lock mechanism initialization succeeded.\n");
 
-    init_mbox();
-    printk("> [INIT] Mailbox initialization succeeded.\n");
+        // Init interrupt (^_^)
+        init_exception();
+        printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
-    // Init system call table (0_0)
-    init_syscall();
-    printk("> [INIT] System call initialized successfully.\n");
+        // init barriers
+        init_barriers();
+        printk("> [INIT] Barrier initialization succeeded.\n");
 
-    // Init screen (QAQ)
-    init_screen();
-    printk("> [INIT] SCREEN initialization succeeded.\n");
+        init_conditions();
+        printk("> [INIT] Condition initialization succeeded.\n");
 
-    //  Setup timer interrupt and enable all interrupt globally
-    // NOTE: The function of sstatus.sie is different from sie's
+        init_mbox();
+        printk("> [INIT] Mailbox initialization succeeded.\n");
+
+        // Init system call table (0_0)
+        init_syscall();
+        printk("> [INIT] System call initialized successfully.\n");
+
+        // Init screen (QAQ)
+        init_screen();
+        printk("> [INIT] SCREEN initialization succeeded.\n");
+
+        // 在 CPU0 上起 shell
+        do_exec("shell", 0, NULL);
+
+        // 初始化完，放开锁，叫醒其他 hart
+        unlock_kernel();
+        wakeup_other_hart(NULL);
+
+        // 再抢回锁，从此进入正常调度
+        lock_kernel();
+        cpu_id = 0;
+    }
+    else
+    {
+        // ------------ CPU1 路径（不再做各种 init_*） ------------
+
+        lock_kernel(); // 等 CPU0 做完初始化
+        cpu_id = 1;    // 强制置为 1，避免用 mhartid 乱飞
+        current_running[cpu_id]->status = TASK_RUNNING;
+    }
+
+    // 这里开始两个核执行相同的代码
+
+    setup_exception(); // 设置 stvec、SIE 等异常入口
+
+    // 每个核设置自己的 timer
     bios_set_timer(get_ticks() + TIMER_INTERVAL);
 
-    do_exec("shell", 0, NULL);
+    if (cpu_id == 0)
+        printk("> [INIT] CPU 0 initialization succeeded.\n");
+    else
+        printk("> [INIT] CPU 1 initialization succeeded.\n");
 
-    // Infinite while loop, where CPU stays in a low-power state (QAQQQQQQQQQQQ)
-    // printk("going to do_scheduler\n");
+    unlock_kernel();
+
     while (1)
     {
-        // If you do non-preemptive scheduling, it's used to surrender control
-        // do_scheduler();
-
-        // If you do preemptive scheduling, they're used to enable CSR_SIE and wfi
         enable_preempt();
         asm volatile("wfi");
     }

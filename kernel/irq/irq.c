@@ -6,6 +6,8 @@
 #include <printk.h>
 #include <assert.h>
 #include <screen.h>
+#include <os/smp.h>
+#include <csr.h>
 
 #define SCAUSE_IRQ_MASK 0x8000000000000000
 handler_t irq_table[IRQC_COUNT];
@@ -15,6 +17,7 @@ handler_t exc_table[EXCC_COUNT];
 // 根据scause判定中断/异常，再去表里调用具体函数
 void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
 {
+    cpu_id = get_current_cpu_id();
     // interrupt handler.
     // call corresponding handler by the value of `scause`
     // 高位=1表示中断；其余位为中断/异常编码
@@ -26,7 +29,7 @@ void interrupt_helper(regs_context_t *regs, uint64_t stval, uint64_t scause)
         if (code < IRQC_COUNT && irq_table[code])
             irq_table[code](regs, stval, scause);
         else
-            handle_other(regs, stval, scause); 
+            handle_other(regs, stval, scause);
     }
     else
     {
@@ -42,8 +45,22 @@ void handle_irq_timer(regs_context_t *regs, uint64_t stval, uint64_t scause)
     // clock interrupt handler.
     // Note: use bios_set_timer to reset the timer and remember to reschedule
     uint64_t next = get_ticks() + TIMER_INTERVAL;
-    bios_set_timer(next); 
-    do_scheduler();       
+    bios_set_timer(next);
+    do_scheduler();
+}
+
+// 处理核间 software interrupt(IPI)
+void handle_ipi(regs_context_t *regs, uint64_t stval, uint64_t scause)
+{
+    // 清理 SSIP pending 位，表示中断已处理
+    uint64_t sip;
+
+    asm volatile("csrr %0, sip" : "=r"(sip));
+    sip &= ~SIE_SSIE; // 清掉 supervisor software interrupt pending
+    asm volatile("csrw sip, %0" ::"r"(sip));
+
+    // 这里暂时不做别的事：
+    // IPI 主要用来把 wfi 中的核唤醒，让它能继续响应定时器中断做调度
 }
 
 void init_exception(void)
@@ -58,10 +75,12 @@ void init_exception(void)
     /* NOTE: handle_int, handle_other, etc.*/
     for (int i = 0; i < IRQC_COUNT; ++i)
         irq_table[i] = handle_other;
+
+    irq_table[IRQC_S_SOFT] = handle_ipi;
     irq_table[IRQC_S_TIMER] = handle_irq_timer;
 
     /*  set up the entrypoint of exceptions */
-    setup_exception();
+    // setup_exception();
 }
 
 // 兜底处理，打印相关信息

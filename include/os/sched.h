@@ -32,6 +32,7 @@
 #include <type.h>
 #include <os/list.h>
 
+#define NR_CPUS 2
 #define NUM_MAX_TASK 16
 
 /* used to save register infomation */
@@ -89,6 +90,11 @@ typedef struct pcb
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
+    // 运行当前进程的cpu
+    uint64_t run_cpu_id;
+    // 绑定cpu的掩码
+    uint64_t cpu_mask;
+
 } pcb_t;
 
 /* ready queue to run */
@@ -98,11 +104,15 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-register pcb_t *current_running asm("tp");
+
+extern pcb_t *current_running[NR_CPUS];
+
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
 extern pcb_t pid0_pcb;
+extern pcb_t s_pid0_pcb;
+
 extern const ptr_t pid0_stack;
 
 extern void switch_to(pcb_t *prev, pcb_t *next);

@@ -9,9 +9,9 @@
 #include <screen.h>
 #include <printk.h>
 #include <assert.h>
+#include <os/smp.h>
 
-int FLY_SPEED_TABLE[16];
-int FLY_LENGTH_TABLE[16];
+pcb_t *current_running[NR_CPUS];
 
 pcb_t pcb[NUM_MAX_TASK];
 const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
@@ -19,6 +19,12 @@ pcb_t pid0_pcb = {
     .pid = 0,
     .kernel_sp = (ptr_t)pid0_stack,
     .user_sp = (ptr_t)pid0_stack};
+
+const ptr_t s_pid0_stack = INIT_KERNEL_STACK + 2 * PAGE_SIZE;
+pcb_t s_pid0_pcb = {
+    .pid = 0,
+    .kernel_sp = (ptr_t)s_pid0_stack,
+    .user_sp = (ptr_t)s_pid0_stack};
 
 LIST_HEAD(ready_queue);
 LIST_HEAD(sleep_queue);
@@ -31,7 +37,7 @@ list_node_t *seek_ready_node()
     list_node_t *p = ready_queue.next;
     // delete p from queue
     if (p == &ready_queue)
-        return &pid0_pcb.list;
+        return cpu_id ? &s_pid0_pcb.list : &pid0_pcb.list;
     delete_node_from_q(p);
     return p;
 }
@@ -62,7 +68,7 @@ pcb_t *get_pcb(list_node_t *node)
         if (node == &pcb[i].list)
             return &pcb[i];
     }
-    return &pid0_pcb; // fail to find the task, return to kernel
+    return cpu_id ? &s_pid0_pcb : &pid0_pcb; // fail to find the task, return to kernel
 }
 
 void do_scheduler(void)
@@ -73,36 +79,36 @@ void do_scheduler(void)
     /************************************************************/
     /* Do not touch this comment. Reserved for future projects. */
     /************************************************************/
-    //  Modify the current_running pointer.
+    //  Modify the current_running[cpu_id] pointer.
     // printk("this is in do_scheduler\n");
     pcb_t *prior_running;
-    prior_running = current_running;
+    prior_running = current_running[cpu_id];
 
-    if (current_running->pid != 0)
+    if (current_running[cpu_id]->pid != 0)
     {
-        if (current_running->status == TASK_RUNNING)
+        if (current_running[cpu_id]->status == TASK_RUNNING)
         {
-            current_running->status = TASK_READY;
-            add_node_to_q(&current_running->list, &ready_queue);
+            current_running[cpu_id]->status = TASK_READY;
+            add_node_to_q(&current_running[cpu_id]->list, &ready_queue);
         }
     }
     list_node_t *ready_node = seek_ready_node();
-    current_running = get_pcb(ready_node);
-    current_running->status = TASK_RUNNING;
+    current_running[cpu_id] = get_pcb(ready_node);
+    current_running[cpu_id]->status = TASK_RUNNING;
     // printk("going to do switch_to\n");
-    //   switch_to current_running
-    switch_to(prior_running, current_running);
+    //   switch_to current_running[cpu_id]
+    switch_to(prior_running, current_running[cpu_id]);
 }
 
 void do_sleep(uint32_t sleep_time)
 {
     //  sleep(seconds)
     // NOTE: you can assume: 1 second = 1 `timebase` ticks
-    // 1. block the current_running
-    do_block(&current_running->list, &sleep_queue);
+    // 1. block the current_running[cpu_id]
+    do_block(&current_running[cpu_id]->list, &sleep_queue);
     // 2. set the wake up time for the blocked task
-    current_running->wakeup_time = get_timer() + sleep_time;
-    // 3. reschedule because the current_running is blocked.
+    current_running[cpu_id]->wakeup_time = get_timer() + sleep_time;
+    // 3. reschedule because the current_running[cpu_id] is blocked.
     do_scheduler();
 }
 
@@ -199,7 +205,7 @@ pid_t do_exec(char *name, int argc, char *argv[])
 
 pid_t do_getpid()
 {
-    return current_running->pid;
+    return current_running[cpu_id]->pid;
 }
 
 int do_waitpid(pid_t pid)
@@ -225,7 +231,7 @@ int do_waitpid(pid_t pid)
         return pid;
     }
 
-    do_block(&current_running->list, &target->wait_list);
+    do_block(&current_running[cpu_id]->list, &target->wait_list);
     do_scheduler();
 
     return pid;
@@ -233,13 +239,13 @@ int do_waitpid(pid_t pid)
 
 void do_exit(void)
 {
-    //  exit the current_running task.
-    current_running->status = TASK_EXITED;
+    //  exit the current_running[cpu_id] task.
+    current_running[cpu_id]->status = TASK_EXITED;
 
     // unblock all the tasks in wait_list
-    release_pcb(current_running);
+    release_pcb(current_running[cpu_id]);
 
-    // reschedule because the current_running is exited.
+    // reschedule because the current_running[cpu_id] is exited.
     do_scheduler();
 }
 

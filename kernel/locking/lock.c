@@ -3,6 +3,7 @@
 #include <os/list.h>
 #include <atomic.h>
 #include <os/string.h>
+#include <os/smp.h>
 
 barrier_t barriers[BARRIER_NUM];
 mutex_lock_t mlocks[LOCK_NUM];
@@ -10,7 +11,6 @@ condition_t conditions[CONDITION_NUM];
 mailbox_t mailboxes[MBOX_NUM];
 
 int lock_used_num = 0;
-
 
 void init_locks(void)
 {
@@ -86,13 +86,13 @@ void do_mutex_lock_acquire(int mlock_idx)
     if (m->pid == -1)
     {
         // 没有人持有这把 mutex，直接占有
-        m->pid = current_running->pid;
+        m->pid = current_running[cpu_id]->pid;
         spin_lock_release(&m->lock);
         return;
     }
 
     // 已经有人持有，把自己加入阻塞队列
-    do_block(&current_running->list, &m->block_queue);
+    do_block(&current_running[cpu_id]->list, &mlocks[mlock_idx].block_queue);
 
     // 加到队列后，释放自旋锁
     spin_lock_release(&m->lock);
@@ -104,7 +104,6 @@ void do_mutex_lock_acquire(int mlock_idx)
     // （在 do_mutex_lock_release 里会把 m->pid 设置成被唤醒者的 pid）
 }
 
-
 // 释放
 void do_mutex_lock_release(int mlock_idx)
 {
@@ -113,7 +112,7 @@ void do_mutex_lock_release(int mlock_idx)
     spin_lock_acquire(&m->lock);
 
     list_node_t *head = &m->block_queue;
-    list_node_t *p    = head->next;
+    list_node_t *p = head->next;
 
     if (p == head)
     {
@@ -124,15 +123,14 @@ void do_mutex_lock_release(int mlock_idx)
     else
     {
         // 队列里有人在等，选队头，把锁的“所有权”给他
-        pcb_t *pcb = get_pcb(p);    // 或者 get_pcb_from_node(p)，按你工程里的实际函数名
+        pcb_t *pcb = get_pcb(p); // 或者 get_pcb_from_node(p)，按你工程里的实际函数名
 
         m->pid = pcb->pid;
 
-        do_unblock(p);             // 唤醒被选中的那个等待者
+        do_unblock(p); // 唤醒被选中的那个等待者
         spin_lock_release(&m->lock);
     }
 }
-
 
 /*barriers*/
 
@@ -185,7 +183,7 @@ void do_barrier_wait(int bar_idx)
     if (b->wait_num < b->goal)
     {
         // 人没到齐，阻塞当前进程
-        do_block(&current_running->list, &b->wait_list);
+        do_block(&current_running[cpu_id]->list, &b->wait_list);
         do_scheduler();
     }
     else
@@ -240,7 +238,7 @@ int do_condition_init(int key)
 }
 void do_condition_wait(int cond_idx, int mutex_idx)
 {
-    pcb_t *pcb = current_running;
+    pcb_t *pcb = current_running[cpu_id];
 
     pcb->status = TASK_BLOCKED;
     add_node_to_q(&pcb->list, &conditions[cond_idx].wait_list);
@@ -372,7 +370,7 @@ int do_mbox_send(int mbox_idx, void *msg, int msg_length)
     while ((next_write_pos = mb->write_pos + msg_length) >
            mb->read_pos + MAX_MBOX_LENGTH)
     {
-        do_block(&current_running->list, &mb->wait_full_queue);
+        do_block(&current_running[cpu_id]->list, &mb->wait_full_queue);
         do_scheduler();
         block_count++;
     }
@@ -398,7 +396,7 @@ int do_mbox_recv(int mbox_idx, void *msg, int msg_length)
     // 邮箱内容不足：阻塞等待
     while ((next_read_pos = mb->read_pos + msg_length) > mb->write_pos)
     {
-        do_block(&current_running->list, &mb->wait_empty_queue);
+        do_block(&current_running[cpu_id]->list, &mb->wait_empty_queue);
         do_scheduler();
         block_count++;
     }
