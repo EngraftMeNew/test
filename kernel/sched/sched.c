@@ -85,10 +85,6 @@ void do_scheduler(void)
             current_running->status = TASK_READY;
             add_node_to_q(&current_running->list, &ready_queue);
         }
-        else if (current_running->status == TASK_BLOCKED)
-        {
-            add_node_to_q(&current_running->list, &sleep_queue);
-        }
     }
     list_node_t *ready_node = seek_ready_node();
     current_running = get_pcb(ready_node);
@@ -249,20 +245,17 @@ void do_exit(void)
 
 int do_kill(pid_t pid)
 {
-    pcb_t *target = NULL;
-
     for (int i = 0; i < NUM_MAX_TASK; i++)
     {
         if (pcb[i].pid == pid && pcb[i].status != TASK_EXITED)
         {
-            target = &pcb[i];
             pcb[i].status = TASK_EXITED;
-            release_pcb(target);
-            return 1;
+            release_pcb(&pcb[i]);
+            return 1; // kill 成功
         }
     }
 
-    return 1;
+    return 0; // 没有这个 pid
 }
 
 void release_all_lock(pid_t pid)
@@ -286,10 +279,21 @@ int search_free_pcb()
 
 void release_pcb(pcb_t *p)
 {
-    if (current_running->pid != p->pid)
-        delete_node_from_q(&(p->list));
-    free_block_list(&(p->wait_list));
+    // 如果该 PCB 还在某个队列中（ready/sleep/其它阻塞队列），先将其摘除
+    if (p->list.next != NULL && p->list.prev != NULL)
+    {
+        delete_node_from_q(&p->list);
+    }
+
+    // 唤醒所有在 p->wait_list 上等待它的进程（wait/waitpid）
+    free_block_list(&p->wait_list);
+    p->wait_list.next = &p->wait_list;
+    p->wait_list.prev = &p->wait_list;
+
+    // 释放该进程持有的所有锁
     release_all_lock(p->pid);
+
+    // 其它资源（栈、页表）本实验可以不管，reuse 的时候会重新初始化
 }
 
 void free_block_list(list_node_t *head)
