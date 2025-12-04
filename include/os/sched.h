@@ -32,6 +32,7 @@
 #include <type.h>
 #include <os/list.h>
 
+#define NR_CPUS 2
 #define NUM_MAX_TASK 16
 
 /* used to save register infomation */
@@ -54,7 +55,8 @@ typedef struct switchto_context
     reg_t regs[14];
 } switchto_context_t;
 
-typedef enum {
+typedef enum
+{
     TASK_BLOCKED,
     TASK_RUNNING,
     TASK_READY,
@@ -88,6 +90,11 @@ typedef struct pcb
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
+    // 运行当前进程的cpu
+    uint64_t run_cpu_id;
+    // 绑定cpu的掩码
+    uint64_t cpu_mask;
+
 } pcb_t;
 
 /* ready queue to run */
@@ -97,27 +104,31 @@ extern list_head ready_queue;
 extern list_head sleep_queue;
 
 /* current running task PCB */
-register pcb_t * current_running asm("tp");
+
+extern pcb_t *current_running[NR_CPUS];
+
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
 extern pcb_t pid0_pcb;
+extern pcb_t s_pid0_pcb;
+
 extern const ptr_t pid0_stack;
 
 extern void switch_to(pcb_t *prev, pcb_t *next);
 void do_scheduler(void);
 void do_sleep(uint32_t);
 
+pcb_t *get_pcb(list_node_t *node);
+
 void do_block(list_node_t *, list_head *queue);
 void do_unblock(list_node_t *);
 
 /************************************************************/
 /* TODO [P3-TASK1] exec exit kill waitpid ps*/
-#ifdef S_CORE
-extern pid_t do_exec(int id, int argc, uint64_t arg0, uint64_t arg1, uint64_t arg2);
-#else
+
 extern pid_t do_exec(char *name, int argc, char *argv[]);
-#endif
+
 extern void do_exit(void);
 extern int do_kill(pid_t pid);
 extern int do_waitpid(pid_t pid);
@@ -125,4 +136,9 @@ extern void do_process_show();
 extern pid_t do_getpid();
 /************************************************************/
 
+extern void init_pcb_stack(ptr_t kernel_stack, ptr_t user_stack, ptr_t entry_point, pcb_t *pcb, int argc, char *argv[]);
+int search_free_pcb();
+void release_pcb(pcb_t *p);
+void free_block_list(list_node_t *haed);
+void release_all_lock(pid_t pid);
 #endif
