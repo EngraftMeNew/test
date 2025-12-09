@@ -90,10 +90,7 @@ typedef struct pcb
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
 
-    // 运行当前进程的cpu
-    uint64_t run_cpu_id;
-    // 绑定cpu的掩码
-    uint64_t cpu_mask;
+
 
 } pcb_t;
 

@@ -402,7 +402,7 @@ int do_mbox_recv(int mbox_idx, void *msg, int msg_length)
     }
 
     // 有足够数据，进行拷贝
-    mbox_ring_copy((char *)msg, mb->buffer,
+    mbox_ring_copy(mb->buffer, (char *)msg,
                    mb->read_pos, msg_length,
                    MAX_MBOX_LENGTH, MBOX_COPY_FROM_RING);
 
