@@ -25,7 +25,6 @@ ptr_t allocUserPage(int numPage)
     return ret;
 }
 
-
 // NOTE: Only need for S-core to alloc 2MB large page
 #ifdef S_CORE
 static ptr_t largePageMemCurr = LARGE_PAGE_FREEMEM;
@@ -52,7 +51,7 @@ void *kmalloc(size_t size)
 void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir)
 {
     // TODO [P4-task1] share_pgtable:
-    memcpy(dest_pgdir, src_pgdir, PAGE_SIZE);
+    memcpy((void *)dest_pgdir, (const void *)src_pgdir, PAGE_SIZE);
 }
 
 /* allocate physical page for `va`, mapping it into `pgdir`,
