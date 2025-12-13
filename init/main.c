@@ -258,7 +258,7 @@ int main(int app_info_loc, int app_info_size)
         init_screen();
         printk("> [INIT] SCREEN initialization succeeded.\n");
 
-        disable_tmp_map();
+        //disable_tmp_map();
         // 在 CPU0 上起 shell
         do_exec("shell", 0, NULL);
 
