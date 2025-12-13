@@ -4,7 +4,7 @@
 
 #define ARRTIBUTE_BOOTKERNEL __attribute__((section(".bootkernel")))
 
-typedef void (*kernel_entry_t)(unsigned long);
+typedef void (*kernel_entry_t)(unsigned long, unsigned long);
 
 /********* setup memory mapping ***********/
 static uintptr_t ARRTIBUTE_BOOTKERNEL alloc_page()
