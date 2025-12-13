@@ -2,7 +2,7 @@
 #define PGTABLE_H
 
 #include <type.h>
-
+// #include<os/string.h>
 #define SATP_MODE_SV39 8
 #define SATP_MODE_SV48 9
 
@@ -20,18 +20,18 @@
  */
 static inline void local_flush_tlb_all(void)
 {
-    __asm__ __volatile__ ("sfence.vma" : : : "memory");
+    __asm__ __volatile__("sfence.vma" : : : "memory");
 }
 
 /* Flush one page from local TLB */
 static inline void local_flush_tlb_page(unsigned long addr)
 {
-    __asm__ __volatile__ ("sfence.vma %0" : : "r" (addr) : "memory");
+    __asm__ __volatile__("sfence.vma %0" : : "r"(addr) : "memory");
 }
 
 static inline void local_flush_icache_all(void)
 {
-    asm volatile ("fence.i" ::: "memory");
+    asm volatile("fence.i" ::: "memory");
 }
 
 static inline void set_satp(
@@ -42,7 +42,7 @@ static inline void set_satp(
     __asm__ __volatile__("sfence.vma\ncsrw satp, %0" : : "rK"(__v) : "memory");
 }
 
-#define PGDIR_PA 0x51000000lu  // use 51000000 page as PGDIR
+#define PGDIR_PA 0x51000000lu // use 51000000 page as PGDIR
 
 /*
  * PTE format:
@@ -72,46 +72,62 @@ static inline void set_satp(
 
 typedef uint64_t PTE;
 
+#define KVA_OFFSET 0xffffffc000000000
 /* Translation between physical addr and kernel virtual addr */
 static inline uintptr_t kva2pa(uintptr_t kva)
 {
     /* TODO: [P4-task1] */
+    return kva - KVA_OFFSET;
 }
 
 static inline uintptr_t pa2kva(uintptr_t pa)
 {
     /* TODO: [P4-task1] */
+    return pa + KVA_OFFSET;
 }
 
 /* get physical page addr from PTE 'entry' */
 static inline uint64_t get_pa(PTE entry)
 {
     /* TODO: [P4-task1] */
+    uint64_t ppn = (entry >> 10) & ((1ULL << 44) - 1);
+    return ppn << 12; // 转物理地址乘4KB
 }
 
 /* Get/Set page frame number of the `entry` */
 static inline long get_pfn(PTE entry)
 {
     /* TODO: [P4-task1] */
+    return (entry >> _PAGE_PFN_SHIFT) & ((1ULL << 44) - 1);
 }
 static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
     /* TODO: [P4-task1] */
+    // 清空 PPN（位 [53:10]）
+    *entry &= ~(((1ULL << 44) - 1) << _PAGE_PFN_SHIFT);
+    // 设置新的 PPN
+    *entry |= (pfn & ((1ULL << 44) - 1)) << _PAGE_PFN_SHIFT;
 }
 
 /* Get/Set attribute(s) of the `entry` */
 static inline long get_attribute(PTE entry, uint64_t mask)
 {
     /* TODO: [P4-task1] */
+    return entry & mask;
 }
 static inline void set_attribute(PTE *entry, uint64_t bits)
 {
     /* TODO: [P4-task1] */
+    // 清空标志位（位 [9:0]）
+    *entry &= ~((1ULL << 10) - 1);
+    // 设置新的标志位
+    *entry |= bits & ((1ULL << 10) - 1);
 }
 
 static inline void clear_pgdir(uintptr_t pgdir_addr)
 {
     /* TODO: [P4-task1] */
+    bzero((void *)pgdir_addr, NORMAL_PAGE_SIZE);
 }
 
-#endif  // PGTABLE_H
+#endif // PGTABLE_H

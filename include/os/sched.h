@@ -80,6 +80,8 @@ typedef struct pcb
     /* process id */
     pid_t pid;
 
+    uintptr_t pgdir;
+
     /* BLOCK | READY | RUNNING */
     task_status_t status;
 

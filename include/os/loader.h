@@ -5,4 +5,6 @@
 
 uint64_t load_task_img(char *taskname);
 
+uint64_t map_task(char *taskname, uintptr_t pgdir);
+
 #endif
