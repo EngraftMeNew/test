@@ -1,7 +1,9 @@
 #include <os/mm.h>
+#include <os/string.h>
 
 // NOTE: A/C-core
 static ptr_t kernMemCurr = FREEMEM_KERNEL;
+static ptr_t userMemCurr = FREEMEM_USER;
 
 ptr_t allocPage(int numPage)
 {
@@ -10,6 +12,19 @@ ptr_t allocPage(int numPage)
     kernMemCurr = ret + numPage * PAGE_SIZE;
     return ret;
 }
+
+ptr_t allocKernelPage(int numPage)
+{
+    return allocPage(numPage);
+}
+
+ptr_t allocUserPage(int numPage)
+{
+    ptr_t ret = ROUND(userMemCurr, PAGE_SIZE);
+    userMemCurr = ret + numPage * PAGE_SIZE;
+    return ret;
+}
+
 
 // NOTE: Only need for S-core to alloc 2MB large page
 #ifdef S_CORE

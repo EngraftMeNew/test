@@ -22,7 +22,8 @@ static void ARRTIBUTE_BOOTKERNEL map_page(uint64_t va, uint64_t pa, PTE *pgdir)
         va >> (NORMAL_PAGE_SHIFT + PPN_BITS + PPN_BITS);
     uint64_t vpn1 = (vpn2 << PPN_BITS) ^
                     (va >> (NORMAL_PAGE_SHIFT + PPN_BITS));
-    if (pgdir[vpn2] == 0) {
+    if (pgdir[vpn2] == 0)
+    {
         // alloc a new second-level page directory
         set_pfn(&pgdir[vpn2], alloc_page() >> NORMAL_PAGE_SHIFT);
         set_attribute(&pgdir[vpn2], _PAGE_PRESENT);
@@ -54,12 +55,14 @@ static void ARRTIBUTE_BOOTKERNEL setup_vm()
     // map all physical memory
     PTE *early_pgdir = (PTE *)PGDIR_PA;
     for (uint64_t kva = 0xffffffc050000000lu;
-         kva < 0xffffffc060000000lu; kva += 0x200000lu) {
+         kva < 0xffffffc060000000lu; kva += 0x200000lu)
+    {
         map_page(kva, kva2pa(kva), early_pgdir);
     }
     // map boot address
     for (uint64_t pa = 0x50000000lu; pa < 0x51000000lu;
-         pa += 0x200000lu) {
+         pa += 0x200000lu)
+    {
         map_page(pa, pa, early_pgdir);
     }
     enable_vm();
@@ -70,14 +73,17 @@ extern uintptr_t _start[];
 /*********** start here **************/
 int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid)
 {
-    if (mhartid == 0) {
+    if (mhartid == 0)
+    {
         setup_vm();
-    } else {
+    }
+    else
+    {
         enable_vm();
     }
 
     /* enter kernel */
-    ((kernel_entry_t)pa2kva(_start))(mhartid);
+    ((kernel_entry_t)pa2kva((uintptr_t)_start))(mhartid);
 
     return 0;
 }

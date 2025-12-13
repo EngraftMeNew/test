@@ -23,12 +23,12 @@ do_clear:
   /*  setup C environment */
 
   la tp, pid0_pcb
-  la sp, KERNEL_STACK
+  li sp, KERNEL_STACK
   j main
 
 s_start:
   la tp, s_pid0_pcb
-  la sp, S_KERNEL_STACK
+  li sp, S_KERNEL_STACK
   call main
 
 loop:

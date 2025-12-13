@@ -2,7 +2,7 @@
 #define PGTABLE_H
 
 #include <type.h>
-// #include<os/string.h>
+#include <os/string.h>
 #define SATP_MODE_SV39 8
 #define SATP_MODE_SV48 9
 

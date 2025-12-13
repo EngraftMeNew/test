@@ -44,6 +44,8 @@
 #define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n) - 1))
 
 extern ptr_t allocPage(int numPage);
+ptr_t allocKernelPage(int numPage);
+ptr_t allocUserPage(int numPage);
 // TODO [P4-task1] */
 void freePage(ptr_t baseAddr);
 
