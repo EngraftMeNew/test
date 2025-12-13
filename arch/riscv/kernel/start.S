@@ -22,7 +22,8 @@ ENTRY(_boot)
 
   la sp, boot_stack_top_base
 
-  csrr a0, CSR_MHARTID 
+  csrr a2, CSR_MHARTID
+  bnez a2, secondary 
 
   // this will never return
   call boot_kernel
@@ -31,5 +32,9 @@ ENTRY(_boot)
 loop:
   wfi
   j loop
+
+secondary:
+  wfi
+  j secondary
 
 END(_boot)

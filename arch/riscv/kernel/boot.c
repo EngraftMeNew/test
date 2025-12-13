@@ -71,8 +71,12 @@ static void ARRTIBUTE_BOOTKERNEL setup_vm()
 extern uintptr_t _start[];
 
 /*********** start here **************/
-int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid)
+int ARRTIBUTE_BOOTKERNEL boot_kernel(
+    unsigned long app_info_loc, unsigned long app_info_size)
 {
+    unsigned long mhartid;
+    __asm__ __volatile__("csrr %0, mhartid" : "=r"(mhartid));
+
     if (mhartid == 0)
     {
         setup_vm();
@@ -83,7 +87,7 @@ int ARRTIBUTE_BOOTKERNEL boot_kernel(unsigned long mhartid)
     }
 
     /* enter kernel */
-    ((kernel_entry_t)_start)(mhartid);
+    ((kernel_entry_t)_start)(app_info_loc, app_info_size);
 
     return 0;
 }
