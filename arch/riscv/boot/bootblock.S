@@ -14,7 +14,7 @@
 .equ app_info_addr_loc, 0x502001f4
 
 .equ KERNEL_VA, 0xffffffc050202000
-.equ KERNEL_PA, KERNEL_VA - 0xffffffc000000000
+.equ KERNEL_PA, 0x50202000
 
 .text
 .global main
@@ -33,7 +33,7 @@ main:
 	// call BIOS to read kernel in SD card
 	li a7, BIOS_SDREAD
 	//la a0, kernel
-	la a0, KERNEL_PA
+	li a0, KERNEL_PA
 	la t0, os_size_loc
 	lh a1, 0(t0)
 	li a2, 1
@@ -48,7 +48,8 @@ main:
 
 	//  jump to kernel to start UCAS-OS
 	//jal kernel
-	jal KERNEL_PA
+	li t0, KERNEL_PA
+	jalr zero, t0, 0
 
 
 	/************************************************************/
