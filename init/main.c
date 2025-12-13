@@ -23,6 +23,7 @@ extern void ret_from_exception();
 // Task info array
 task_info_t tasks[TASK_MAXNUM];
 int task_num = 0;
+
 static void init_jmptab(void)
 {
     volatile long (*(*jmptab))() = (volatile long (*(*))())KERNEL_JMPTAB_BASE;
@@ -169,6 +170,30 @@ static void kernel_brake(void)
         __asm__ volatile("wfi");
 }
 
+void disable_tmp_map()
+{
+    PTE *pgdir = (PTE *)pa2kva(PGDIR_PA);
+    const uint64_t VPN_MASK = (1UL << PPN_BITS) - 1;
+
+    for (uint64_t va = 0x50000000lu; va < 0x51000000lu; va += 0x200000lu)
+    {
+        uint64_t v = va & VA_MASK;
+
+        uint64_t vpn2 = (v >> (NORMAL_PAGE_SHIFT + 2 * PPN_BITS)) & VPN_MASK;
+        uint64_t vpn1 = (v >> (NORMAL_PAGE_SHIFT + 1 * PPN_BITS)) & VPN_MASK;
+
+        // pgdir 该项不存在就跳过，避免 pa2kva(0) 这种事故
+        if (pgdir[vpn2] == 0)
+            continue;
+
+        PTE *pmd = (PTE *)pa2kva(get_pa(pgdir[vpn2]));
+        pmd[vpn1] = 0;
+
+        asm volatile("sfence.vma %0" ::"r"(v) : "memory");
+    }
+
+}
+
 int main(int app_info_loc, int app_info_size)
 {
     int tmp_cpu_id = get_current_cpu_id();
@@ -234,6 +259,7 @@ int main(int app_info_loc, int app_info_size)
         init_screen();
         printk("> [INIT] SCREEN initialization succeeded.\n");
 
+        disable_tmp_map();
         // 在 CPU0 上起 shell
         do_exec("shell", 0, NULL);
 
