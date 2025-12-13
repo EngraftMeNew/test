@@ -6,8 +6,7 @@
 #include <asm.h>
 #include <csr.h>
 
-/* maybe you need another stack for booting? */
-.equ boot_stack_top_base, 0x50202000
+.equ boot_stack_top_base, 0x50300000
 
 .section ".bootkernel_entry","ax"
 ENTRY(_boot)
