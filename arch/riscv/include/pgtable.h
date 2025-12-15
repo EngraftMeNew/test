@@ -98,7 +98,7 @@ static inline uint64_t get_pa(PTE entry)
 static inline long get_pfn(PTE entry)
 {
     /* TODO: [P4-task1] */
-    return (entry >> _PAGE_PFN_SHIFT) & ((1ULL << 44) - 1);
+    return (entry >> _PAGE_PFN_SHIFT) ;
 }
 static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
