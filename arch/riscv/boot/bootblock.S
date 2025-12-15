@@ -28,23 +28,36 @@ main:
 	li a7, BIOS_PUTSTR
 	jal bios_func_entry
 
+    li a7, BIOS_PUTCHAR
+    li a0, 'A'
+	jal bios_func_entry
+
 	// call BIOS to read kernel in SD card
 	li a7, BIOS_SDREAD
 	//la a0, kernel
 	li a0, kernel
 	la t0, os_size_loc
-	lh a1, 0(t0)
+	lhu a1, 0(t0)
 	li a2, 1
 	jal bios_func_entry
+
+	li a7, BIOS_PUTCHAR
+    li a0, 'B'
+    jal bios_func_entry
 
 
 
 	// load task-related arguments and pass them to kernel
-	//la t1, app_info_addr_loc	
-	//lw a0, (t1)		// pass the location for task info as parameter 1
-	//lw a1, 4(t1)	// pass the size as parameter 2
+	li t1, app_info_addr_loc	
+	lw a0, (t1)		// pass the location for task info as parameter 1
+	lw a1, 4(t1)	// pass the size as parameter 2
+
+    li a7, BIOS_PUTCHAR
+    li a0, 'C'
+    jal bios_func_entry
 
 	//  jump to kernel to start UCAS-OS
+	lw a0, (t1)
 	jal kernel
 	//li t0, KERNEL_PA
 	//jalr zero, t0, 0

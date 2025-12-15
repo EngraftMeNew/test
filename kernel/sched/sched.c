@@ -157,14 +157,27 @@ pid_t do_exec(char *name, int argc, char *argv[])
     if (index == -1)
         return 0;
 
-    entry_point = load_task_img(name);
+    uintptr_t pgdir = pa2kva(PGDIR_PA); // 用全局页表（你 switch_to 没切 satp，所以用同一个）
+    pcb[index].pgdir = pgdir;
+
+    entry_point = map_task(name, pgdir);
     if (entry_point == 0)
         return 0;
 
     // 分配内核栈和用户栈
     pcb[index].kernel_sp = (reg_t)(allocKernelPage(1) + PAGE_SIZE);
-    pcb[index].user_sp = (reg_t)(allocUserPage(1) + PAGE_SIZE);
-    user_sp = pcb[index].user_sp;
+
+    uintptr_t user_stack_top = USER_STACK_ADDR; // 用户态 sp 顶
+    uintptr_t user_stack_page_va = user_stack_top - PAGE_SIZE;
+
+    // 在页表中给这一页分配并映射（返回它的 KVA，方便内核写）
+    uintptr_t user_stack_page_kva = alloc_page_helper(user_stack_page_va, pgdir);
+    memset((void *)user_stack_page_kva, 0, PAGE_SIZE);
+
+    pcb[index].user_sp = user_stack_top; // 这里必须是 user VA
+
+    user_sp = USER_STACK_ADDR;
+    uintptr_t user_sp_kva = user_stack_page_kva + PAGE_SIZE;
 
     // 分配 pid / 初始化通用字段
     task_num++;
@@ -176,25 +189,26 @@ pid_t do_exec(char *name, int argc, char *argv[])
     pcb[index].list.prev = pcb[index].list.next = NULL;
     // 参数搬到用户栈：先预留 argv 指针数组
     user_sp -= sizeof(char *) * argc;
-    argv_ptr = (char **)user_sp;
+    user_sp_kva -= sizeof(char *) * argc;
+
+    char **argv_user = (char **)user_sp;
+    char **argv_user_kva = (char **)user_sp_kva;
 
     for (int i = argc - 1; i >= 0; i--)
     {
-        int len = strlen(argv[i]) + 1; // '\0'
+        int len = strlen(argv[i]) + 1;
         user_sp -= len;
-        argv_ptr[i] = (char *)user_sp;
-        strcpy((char *)user_sp, argv[i]);
+        user_sp_kva -= len;
+
+        argv_user_kva[i] = (char *)user_sp;   // 写“用户 VA”
+        strcpy((char *)user_sp_kva, argv[i]); // 写到“KVA”
     }
 
     // 对齐
-    pcb[index].user_sp = (reg_t)ROUNDDOWN(user_sp, 128);
+    pcb[index].user_sp = ROUNDDOWN(user_sp, 16);
 
-    init_pcb_stack(pcb[index].kernel_sp,
-                   pcb[index].user_sp,
-                   entry_point,
-                   &pcb[index],
-                   argc,
-                   argv_ptr);
+    init_pcb_stack(pcb[index].kernel_sp, pcb[index].user_sp,
+                   entry_point, &pcb[index], argc, argv_user);//这里如果用（char *)argv_user，编译器会报错
 
     add_node_to_q(&pcb[index].list, &ready_queue);
 

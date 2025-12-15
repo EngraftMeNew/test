@@ -9,8 +9,8 @@ ENTRY(_start)
   csrw CSR_SIE, zero
   csrw CSR_SIP, zero
 
-  csrr t0, CSR_MHARTID  //读当前的cpu_id
-  bnez t0, s_start     //从核
+  //csrr t0, CSR_MHARTID  //读当前的cpu_id
+  //bnez t0, s_start     //从核
 
   /*  clear BSS for flat non-ELF images */
   la t0, __bss_start

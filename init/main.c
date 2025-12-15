@@ -55,10 +55,10 @@ void init_task_info(int app_info_loc, int app_info_size)
     int start_sec, blocknums;
     start_sec = app_info_loc / SECTOR_SIZE;
     blocknums = NBYTES2SEC(app_info_loc + app_info_size) - start_sec;
-    int task_info_addr = TASK_INFO_MEM;
+    uintptr_t task_info_addr = TASK_INFO_MEM;
     bios_sd_read(task_info_addr, blocknums, start_sec);
-    int start_addr = (TASK_INFO_MEM + app_info_loc - start_sec * SECTOR_SIZE);
-    uint8_t *tmp = (uint8_t *)(start_addr);
+    uintptr_t start_addr = (TASK_INFO_MEM + app_info_loc - (uintptr_t)start_sec * SECTOR_SIZE);
+    uint8_t *tmp = (uint8_t *)pa2kva(start_addr);
     memcpy((uint8_t *)tasks, tmp, app_info_size);
 }
 
@@ -191,7 +191,6 @@ void disable_tmp_map()
 
         asm volatile("sfence.vma %0" ::"r"(v) : "memory");
     }
-
 }
 
 int main(int app_info_loc, int app_info_size)
@@ -258,12 +257,29 @@ int main(int app_info_loc, int app_info_size)
         init_screen();
         printk("> [INIT] SCREEN initialization succeeded.\n");
 
-        //disable_tmp_map();
-        // 在 CPU0 上起 shell
-        do_exec("shell", 0, NULL);
-
-        // 初始化完，放开锁，叫醒其他 hart
+        // disable_tmp_map();
+        //  在 CPU0 上起 shell
+        pid_t pid = do_exec("shell", 0, NULL);
+        if (pid == 0)
+        {
+            printk("[ERROR] do_exec(shell) failed!\n");
+            while (1)
+                asm volatile("wfi");
+        }
+        // do_scheduler();
+        //  初始化完，放开锁，叫醒其他 hart
         unlock_kernel();
+        if (cpu_id == 0)
+        {
+            do_scheduler();
+        }
+        while (1)
+        {
+            if (cpu_id == 0)
+                enable_preempt();
+            asm volatile("wfi");
+        }
+
         wakeup_other_hart(NULL);
 
         // 再抢回锁，从此进入正常调度
