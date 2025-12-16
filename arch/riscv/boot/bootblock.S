@@ -4,8 +4,10 @@
 // os size location (os_size could be sectors [p1-task3] or bytes [p1-task4])
 .equ os_size_loc, 0x502001fc
 
-// kernel address (move kernel to here, and jmp here to start kernel)
-.equ kernel, 0x50202000
+// kernel physical/virtual entry (see KERNEL_ENTRYPOINT in Makefile)
+.equ kernel_pa, 0x50202000
+.equ KVA_OFFSET, 0xffffffc000000000
+.equ kernel, kernel_pa + KVA_OFFSET
 
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
@@ -31,8 +33,8 @@ main:
 
 
 	// call BIOS to read kernel in SD card
-	li a7, BIOS_SDREAD
-	li a0, kernel
+        li a7, BIOS_SDREAD
+        li a0, kernel_pa
 	la t0, os_size_loc
 	lh a1, 0(t0)
 	li a2, 1
@@ -47,9 +49,11 @@ main:
 
 
 
-	//  jump to kernel to start UCAS-OS
+        //  jump to kernel to start UCAS-OS
 
-	jal kernel
+        li t0, kernel
+        // ensure we jump using the full 64-bit virtual entry
+        jalr zero, t0, 0
 	//li t0, KERNEL_PA
 	//jalr zero, t0, 0
 
@@ -65,7 +69,7 @@ secondary:
   	csrc CSR_SSTATUS, t0
 
 
-	la t0, kernel
+        la t0, kernel
 	csrw stvec, t0
 	li t0, SIE_SSIE
 	csrs sie, t0		
