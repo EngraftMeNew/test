@@ -24,6 +24,9 @@ extern void ret_from_exception();
 task_info_t tasks[TASK_MAXNUM];
 int task_num = 0;
 
+#define APP_INFO_ADDR_LOC 0xffffffc0502001f4
+#define SWAP_START 0xffffffc0502001f0
+
 static void init_jmptab(void)
 {
     volatile long (*(*jmptab))() = (volatile long (*(*))())KERNEL_JMPTAB_BASE;
@@ -48,17 +51,21 @@ static void init_jmptab(void)
     jmptab[REFLUSH] = (long (*)())screen_reflush;
 }
 
-void init_task_info(int app_info_loc, int app_info_size)
+void init_task_info()
 {
     // Init 'tasks' array via reading app-info sector
     // NOTE: You need to get some related arguments from bootblock first
     int start_sec, blocknums;
+    int *app_info_ptr = (int*)APP_INFO_ADDR_LOC;
+    int app_info_loc, app_info_size;
+    app_info_loc = app_info_ptr[0];
+    app_info_size = app_info_ptr[1];
     start_sec = app_info_loc / SECTOR_SIZE;
     blocknums = NBYTES2SEC(app_info_loc + app_info_size) - start_sec;
     uintptr_t task_info_addr = TASK_INFO_MEM;
     bios_sd_read(task_info_addr, blocknums, start_sec);
-    uintptr_t start_addr = (TASK_INFO_MEM + app_info_loc - (uintptr_t)start_sec * SECTOR_SIZE);
-    uint8_t *tmp = (uint8_t *)pa2kva(start_addr);
+    uintptr_t start_addr = pa2kva(TASK_INFO_MEM + app_info_loc - (uintptr_t)start_sec * SECTOR_SIZE);
+    uint8_t *tmp = (uint8_t *)(start_addr);
     memcpy((uint8_t *)tasks, tmp, app_info_size);
 }
 
@@ -92,6 +99,8 @@ void init_pcb_stack(
     pt_switchto->regs[0] = (uint64_t)ret_from_exception; // ra
     pt_switchto->regs[1] = pcb->kernel_sp;               // sp
 }
+
+
 
 void init_pcb(void)
 {
@@ -193,7 +202,7 @@ void disable_tmp_map()
     }
 }
 
-int main(int app_info_loc, int app_info_size)
+int main()
 {
     int tmp_cpu_id = get_current_cpu_id();
 
@@ -209,7 +218,7 @@ int main(int app_info_loc, int app_info_size)
         init_jmptab();
 
         // Init task information (〃'▽'〃)
-        init_task_info(app_info_loc, app_info_size);
+        init_task_info();
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
@@ -257,7 +266,12 @@ int main(int app_info_loc, int app_info_size)
         init_screen();
         printk("> [INIT] SCREEN initialization succeeded.\n");
 
-        // disable_tmp_map();
+        unlock_kernel();
+        wakeup_other_hart(NULL);
+        lock_kernel();
+        cpu_id = 0;
+
+        disable_tmp_map();
         //  在 CPU0 上起 shell
         pid_t pid = do_exec("shell", 0, NULL);
         if (pid == 0)
@@ -268,23 +282,8 @@ int main(int app_info_loc, int app_info_size)
         }
         // do_scheduler();
         //  初始化完，放开锁，叫醒其他 hart
-        unlock_kernel();
-        if (cpu_id == 0)
-        {
-            do_scheduler();
-        }
-        while (1)
-        {
-            if (cpu_id == 0)
-                enable_preempt();
-            asm volatile("wfi");
-        }
-
-        wakeup_other_hart(NULL);
 
         // 再抢回锁，从此进入正常调度
-        lock_kernel();
-        cpu_id = 0;
     }
     else
     {

@@ -4,7 +4,7 @@
 
 #define ARRTIBUTE_BOOTKERNEL __attribute__((section(".bootkernel")))
 
-typedef void (*kernel_entry_t)(unsigned long, unsigned long);
+typedef void (*kernel_entry_t)(unsigned long);
 
 /********* setup memory mapping ***********/
 static uintptr_t ARRTIBUTE_BOOTKERNEL alloc_page()
@@ -72,10 +72,8 @@ extern uintptr_t _start[];
 
 /*********** start here **************/
 int ARRTIBUTE_BOOTKERNEL boot_kernel(
-    unsigned long app_info_loc, unsigned long app_info_size)
+    unsigned long mhartid)
 {
-    unsigned long mhartid;
-    __asm__ __volatile__("csrr %0, mhartid" : "=r"(mhartid));
 
     if (mhartid == 0)
     {
@@ -87,7 +85,7 @@ int ARRTIBUTE_BOOTKERNEL boot_kernel(
     }
 
     /* enter kernel */
-    ((kernel_entry_t)_start)(app_info_loc, app_info_size);
+    ((kernel_entry_t)(&_start))(mhartid);
 
     return 0;
 }
