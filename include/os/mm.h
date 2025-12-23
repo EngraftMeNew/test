@@ -37,8 +37,8 @@
 #define FREEMEM_KERNEL (INIT_KERNEL_STACK+PAGE_SIZE)
 
 /* Rounding; only works for n = power of two */
-#define ROUND(a, n)     (((((uint64_t)(a))+(n)-1)) & ~((n)-1))
-#define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n)-1))
+#define ROUND(a, n) (((((uint64_t)(a)) + (n) - 1)) & ~((n) - 1))
+#define ROUNDDOWN(a, n) (((uint64_t)(a)) & ~((n) - 1))
 
 extern ptr_t allocPage(int numPage);
 // TODO [P4-task1] */
