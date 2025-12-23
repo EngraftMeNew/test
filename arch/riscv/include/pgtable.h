@@ -2,6 +2,7 @@
 #define PGTABLE_H
 
 #include <type.h>
+#define KVA_OFFSET 0xffffffc000000000UL
 
 #define SATP_MODE_SV39 8
 #define SATP_MODE_SV48 9
@@ -20,18 +21,18 @@
  */
 static inline void local_flush_tlb_all(void)
 {
-    __asm__ __volatile__ ("sfence.vma" : : : "memory");
+    __asm__ __volatile__("sfence.vma" : : : "memory");
 }
 
 /* Flush one page from local TLB */
 static inline void local_flush_tlb_page(unsigned long addr)
 {
-    __asm__ __volatile__ ("sfence.vma %0" : : "r" (addr) : "memory");
+    __asm__ __volatile__("sfence.vma %0" : : "r"(addr) : "memory");
 }
 
 static inline void local_flush_icache_all(void)
 {
-    asm volatile ("fence.i" ::: "memory");
+    asm volatile("fence.i" ::: "memory");
 }
 
 static inline void set_satp(
@@ -42,7 +43,7 @@ static inline void set_satp(
     __asm__ __volatile__("sfence.vma\ncsrw satp, %0" : : "rK"(__v) : "memory");
 }
 
-#define PGDIR_PA 0x51000000lu  // use 51000000 page as PGDIR
+#define PGDIR_PA 0x51000000lu // use 51000000 page as PGDIR
 
 /*
  * PTE format:
@@ -70,48 +71,52 @@ static inline void set_satp(
 #define PPN_BITS 9lu
 #define NUM_PTE_ENTRY (1 << PPN_BITS)
 
+#define PTE_PPN_SHIFT 10
+#define PTE_PPN_MASK ((1ULL << 44) - 1)
+
 typedef uint64_t PTE;
 
 /* Translation between physical addr and kernel virtual addr */
 static inline uintptr_t kva2pa(uintptr_t kva)
 {
-    /* TODO: [P4-task1] */
+    return kva - KVA_OFFSET;
 }
 
 static inline uintptr_t pa2kva(uintptr_t pa)
 {
-    /* TODO: [P4-task1] */
+    return pa + KVA_OFFSET;
 }
 
 /* get physical page addr from PTE 'entry' */
 static inline uint64_t get_pa(PTE entry)
 {
-    /* TODO: [P4-task1] */
+    return ((entry >> 10) & PTE_PPN_MASK) << NORMAL_PAGE_SHIFT;
 }
 
 /* Get/Set page frame number of the `entry` */
 static inline long get_pfn(PTE entry)
 {
-    /* TODO: [P4-task1] */
+    return (entry >> PTE_PPN_SHIFT) & PTE_PPN_MASK;
 }
 static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
-    /* TODO: [P4-task1] */
+    *entry &= ~(PTE_PPN_MASK << PTE_PPN_SHIFT);
+    *entry |= (pfn & PTE_PPN_MASK) << PTE_PPN_SHIFT;
 }
 
 /* Get/Set attribute(s) of the `entry` */
 static inline long get_attribute(PTE entry, uint64_t mask)
 {
-    /* TODO: [P4-task1] */
+    return entry & mask;
 }
 static inline void set_attribute(PTE *entry, uint64_t bits)
 {
-    /* TODO: [P4-task1] */
+    *entry |= bits;
 }
 
 static inline void clear_pgdir(uintptr_t pgdir_addr)
 {
-    /* TODO: [P4-task1] */
+    bzero((void *)pgdir_addr, NORMAL_PAGE_SIZE);
 }
 
-#endif  // PGTABLE_H
+#endif // PGTABLE_H
