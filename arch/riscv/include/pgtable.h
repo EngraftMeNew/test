@@ -2,6 +2,8 @@
 #define PGTABLE_H
 
 #include <type.h>
+#include <os/string.h>
+
 #define KVA_OFFSET 0xffffffc000000000UL
 
 #define SATP_MODE_SV39 8

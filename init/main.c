@@ -19,6 +19,18 @@
 #include <os/smp.h>
 
 extern void ret_from_exception();
+#define APP_INFO_LOC_PA 0x502001f4UL
+#define APP_INFO_SIZE_PA 0x502001f8UL
+
+static inline int get_app_info_loc(void)
+{
+    return *(int *)pa2kva(APP_INFO_LOC_PA);
+}
+
+static inline int get_app_info_size(void)
+{
+    return *(int *)pa2kva(APP_INFO_SIZE_PA);
+}
 
 // Task info array
 task_info_t tasks[TASK_MAXNUM];
@@ -185,7 +197,7 @@ int main(void)
         init_jmptab();
 
         // Init task information (〃'▽'〃)
-        init_task_info();
+        init_task_info(get_app_info_loc(), get_app_info_size());
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
