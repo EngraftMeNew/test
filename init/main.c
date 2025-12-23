@@ -185,7 +185,7 @@ int main(void)
         init_jmptab();
 
         // Init task information (〃'▽'〃)
-        init_task_info(app_info_loc, app_info_size);
+        init_task_info();
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();

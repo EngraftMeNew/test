@@ -5,7 +5,7 @@
 .equ os_size_loc, 0x502001fc
 
 // kernel address (move kernel to here, and jmp here to start kernel)
-.equ kernel, 0x50201000
+.equ kernel, 0x50202000
 
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
@@ -35,7 +35,10 @@ main:
 	li a2, 1
 	jal bios_func_entry
 
-
+    // log the jump target
+    la a0, jump_msg
+    li a7, BIOS_PUTSTR
+    jal bios_func_entry
 
 	// load task-related arguments and pass them to kernel
 	la t1, app_info_addr_loc	
@@ -43,8 +46,9 @@ main:
 	lw a1, 4(t1)	// pass the size as parameter 2
 
 	//  jump to kernel to start UCAS-OS
-	jal kernel
-
+	//jal kernel
+	la t0,kernel
+	jr t0
 
 	/************************************************************/
 secondary:
@@ -76,4 +80,4 @@ stop:
 .data
 
 msg: .string "It's SunJiahao's bootloader...\n\r"
-
+jump_msg: .string "[BB] jump to kernel@0x50202000\n\r"
