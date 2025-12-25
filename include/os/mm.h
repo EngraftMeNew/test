@@ -46,7 +46,7 @@
 extern ptr_t allocPage(int numPage);
 // TODO [P4-task1] */
 void freePage(ptr_t baseAddr);
-void free_all_pages(pcb_t* pcb);
+void free_all_pages(pcb_t *pcb);
 
 // #define S_CORE
 // NOTE: only need for S-core to alloc 2MB large page
@@ -63,7 +63,7 @@ extern ptr_t allocLargePage(int numPage);
 extern void *kmalloc(size_t size);
 extern void share_pgtable(uintptr_t dest_pgdir, uintptr_t src_pgdir);
 extern uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir);
-
+void mark_used(ptr_t addr);
 // TODO [P4-task4]: shm_page_get/dt */
 uintptr_t shm_page_get(int key);
 void shm_page_dt(uintptr_t addr);

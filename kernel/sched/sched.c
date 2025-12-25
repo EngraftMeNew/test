@@ -10,6 +10,7 @@
 #include <printk.h>
 #include <assert.h>
 #include <os/smp.h>
+#include <pgtable.h>
 
 pcb_t *current_running[NR_CPUS];
 
@@ -18,13 +19,15 @@ const ptr_t pid0_stack = INIT_KERNEL_STACK + PAGE_SIZE;
 pcb_t pid0_pcb = {
     .pid = 0,
     .kernel_sp = (ptr_t)pid0_stack,
-    .user_sp = (ptr_t)pid0_stack};
+    .user_sp = (ptr_t)pid0_stack,
+    .pgdir = 0xffffffc051000000};
 
 const ptr_t s_pid0_stack = INIT_KERNEL_STACK + 2 * PAGE_SIZE;
 pcb_t s_pid0_pcb = {
     .pid = 0,
     .kernel_sp = (ptr_t)s_pid0_stack,
-    .user_sp = (ptr_t)s_pid0_stack};
+    .user_sp = (ptr_t)s_pid0_stack,
+    .pgdir = 0xffffffc051000000};
 
 LIST_HEAD(ready_queue);
 LIST_HEAD(sleep_queue);
