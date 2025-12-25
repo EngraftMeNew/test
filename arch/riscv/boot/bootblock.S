@@ -9,7 +9,7 @@
 
 // BIOS function entry (jump here to use BIOS APIs)
 .equ bios_func_entry, 0x50150000
-.equ SECTOR_SIZE,       512
+
 // start address for task info is stored in this loacation, size of array is in following 4 bytes
 .equ app_info_addr_loc, 0x502001f4
 
@@ -35,20 +35,11 @@ main:
 	li a2, 1
 	jal bios_func_entry
 
-    // log the jump target
-    la a0, jump_msg
-    li a7, BIOS_PUTSTR
-    jal bios_func_entry
 
-	// load task-related arguments and pass them to kernel
-	la t1, app_info_addr_loc	
-	lw a0, (t1)		// pass the location for task info as parameter 1
-	lw a1, 4(t1)	// pass the size as parameter 2
 
 	//  jump to kernel to start UCAS-OS
-	//jal kernel
-	la t0,kernel
-	jr t0
+	jal kernel
+
 
 	/************************************************************/
 secondary:
@@ -80,4 +71,3 @@ stop:
 .data
 
 msg: .string "It's SunJiahao's bootloader...\n\r"
-jump_msg: .string "[BB] jump to kernel@0x50202000\n\r"

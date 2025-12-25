@@ -1,8 +1,8 @@
 #include <asm.h>
 #include <csr.h>
 
-#define KERNEL_STACK		0x50500000
-#define S_KERNEL_STACK  0x50600000
+#define KERNEL_STACK		0xffffffc050500000
+#define S_KERNEL_STACK  0xffffffc050600000
 .section ".entry_function","ax"
 ENTRY(_start)
   /* Mask all interrupts */
@@ -23,12 +23,12 @@ do_clear:
   /*  setup C environment */
 
   la tp, pid0_pcb
-  la sp, KERNEL_STACK
+  li sp, KERNEL_STACK
   j main
 
 s_start:
   la tp, s_pid0_pcb
-  la sp, S_KERNEL_STACK
+  li sp, S_KERNEL_STACK
   call main
 
 loop:

@@ -10,6 +10,7 @@
 #include <os/string.h>
 #include <os/mm.h>
 #include <os/time.h>
+#include <os/smp.h>
 #include <sys/syscall.h>
 #include <screen.h>
 #include <printk.h>
@@ -18,23 +19,32 @@
 #include <csr.h>
 #include <os/smp.h>
 
+#define APP_INFO_ADDR_LOC 0xffffffc0502001f4
+
 extern void ret_from_exception();
-#define APP_INFO_LOC_PA 0x502001f4UL
-#define APP_INFO_SIZE_PA 0x502001f8UL
-
-static inline int get_app_info_loc(void)
-{
-    return *(int *)pa2kva(APP_INFO_LOC_PA);
-}
-
-static inline int get_app_info_size(void)
-{
-    return *(int *)pa2kva(APP_INFO_SIZE_PA);
-}
 
 // Task info array
 task_info_t tasks[TASK_MAXNUM];
 int task_num = 0;
+
+// 清除临时映射，便于早期读写、拷贝、建页表等
+void disable_tmp_map(void)
+{
+    PTE *pgdir = (PTE *)pa2kva(PGDIR_PA);
+
+    for (uint64_t va = 0x50000000lu; va < 0x51000000lu; va += 0x200000lu)
+    {
+        uint64_t v = va & VA_MASK;
+        uint64_t vpn2 = (v >> 30) & 0x1ff;
+        uint64_t vpn1 = (v >> 21) & 0x1ff;
+
+        PTE *pmd = (PTE *)pa2kva(get_pa(pgdir[vpn2]));
+        pmd[vpn1] = 0;
+    }
+
+    asm volatile("sfence.vma x0, x0" ::: "memory");
+}
+
 static void init_jmptab(void)
 {
     volatile long (*(*jmptab))() = (volatile long (*(*))())KERNEL_JMPTAB_BASE;
@@ -59,16 +69,20 @@ static void init_jmptab(void)
     jmptab[REFLUSH] = (long (*)())screen_reflush;
 }
 
-void init_task_info(int app_info_loc, int app_info_size)
+void init_task_info()
 {
     // Init 'tasks' array via reading app-info sector
     // NOTE: You need to get some related arguments from bootblock first
+    int *app_info_ptr = (int *)(uintptr_t)APP_INFO_ADDR_LOC;
+    int app_info_loc, app_info_size;
+    app_info_loc = app_info_ptr[0];
+    app_info_size = app_info_ptr[1];
     int start_sec, blocknums;
     start_sec = app_info_loc / SECTOR_SIZE;
     blocknums = NBYTES2SEC(app_info_loc + app_info_size) - start_sec;
-    int task_info_addr = TASK_INFO_MEM;
+    uint64_t task_info_addr = TASK_INFO_MEM;
     bios_sd_read(task_info_addr, blocknums, start_sec);
-    int start_addr = (TASK_INFO_MEM + app_info_loc - start_sec * SECTOR_SIZE);
+    uint64_t start_addr = pa2kva(TASK_INFO_MEM + app_info_loc - start_sec * SECTOR_SIZE);
     uint8_t *tmp = (uint8_t *)(start_addr);
     memcpy((uint8_t *)tasks, tmp, app_info_size);
 }
@@ -88,7 +102,7 @@ void init_pcb_stack(
     pt_regs->regs[1] = (uint64_t)entry_point; // ra
     pt_regs->regs[2] = user_stack;            // sp
     pt_regs->regs[4] = (uint64_t)pcb;         // tp
-    pt_regs->sstatus = SR_SPIE;               // SPIE set to 1
+    pt_regs->sstatus = SR_SPIE | SR_SUM;      // SPIE set to 1
     pt_regs->sepc = (uint64_t)entry_point;
     pt_regs->regs[10] = (reg_t)argc; // a0 = argc
     pt_regs->regs[11] = (reg_t)argv; // a1 = argv
@@ -108,8 +122,6 @@ void init_pcb(void)
 {
     /*  load needed tasks and init their corresponding PCB */
 
-    uint64_t entry_addr;
-
     pid0_pcb.status = TASK_RUNNING;
     pid0_pcb.list.prev = NULL;
     pid0_pcb.list.next = NULL;
@@ -117,7 +129,6 @@ void init_pcb(void)
     s_pid0_pcb.list.prev = NULL;
     s_pid0_pcb.list.next = NULL;
 
-    // load task by name;
     for (int i = 0; i < NUM_MAX_TASK; i++)
     {
         pcb[i].status = TASK_EXITED;
@@ -187,7 +198,6 @@ int main(void)
 
     if (tmp_cpu_id == 0)
     {
-        // ------------ 只在 CPU0 上做的一次性初始化 ------------
 
         // SMP 初始化 + 大内核锁
         smp_init();
@@ -197,7 +207,7 @@ int main(void)
         init_jmptab();
 
         // Init task information (〃'▽'〃)
-        init_task_info(get_app_info_loc(), get_app_info_size());
+        init_task_info();
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
@@ -210,25 +220,6 @@ int main(void)
         init_locks();
         printk("> [INIT] Lock mechanism initialization succeeded.\n");
 
-        /*
-         * Just start kernel with VM and print this string
-         * in the first part of task 1 of project 4.
-         * NOTE: if you use SMP, then every CPU core should call
-         *  `kernel_brake()` to stop executing!
-         */
-        printk("> [INIT] CPU #%u has entered kernel with VM!\n",
-               (unsigned int)get_current_cpu_id());
-        // TODO: [p4-task1 cont.] remove the brake and continue to start user processes.
-        // kernel_brake();
-
-        // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
-        // NOTE: The function of sstatus.sie is different from sie's
-
-        // Init interrupt (^_^)
-        init_exception();
-        printk("> [INIT] Interrupt processing initialization succeeded.\n");
-
-        // init barriers
         init_barriers();
         printk("> [INIT] Barrier initialization succeeded.\n");
 
@@ -238,6 +229,15 @@ int main(void)
         init_mbox();
         printk("> [INIT] Mailbox initialization succeeded.\n");
 
+        // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
+        // NOTE: The function of sstatus.sie is different from sie's
+
+        // Init interrupt (^_^)
+        init_exception();
+        printk("> [INIT] Interrupt processing initialization succeeded.\n");
+
+        // init barriers
+
         // Init system call table (0_0)
         init_syscall();
         printk("> [INIT] System call initialized successfully.\n");
@@ -246,16 +246,16 @@ int main(void)
         init_screen();
         printk("> [INIT] SCREEN initialization succeeded.\n");
 
-        // 在 CPU0 上起 shell
-        do_exec("shell", 0, NULL);
-
-        // 初始化完，放开锁，叫醒其他 hart
+        // 释放大内核锁，唤醒从核
         unlock_kernel();
         wakeup_other_hart(NULL);
-
-        // 再抢回锁，从此进入正常调度
+        // 重新抢内核锁
         lock_kernel();
         cpu_id = 0;
+        // 取消临时映射
+        disable_tmp_map();
+
+        do_exec("shell", 0, NULL);
     }
     else
     {
@@ -269,6 +269,17 @@ int main(void)
     // 这里开始两个核执行相同的代码
 
     setup_exception(); // 设置 stvec、SIE 等异常入口
+
+    /*
+     * Just start kernel with VM and print this string
+     * in the first part of task 1 of project 4.
+     * NOTE: if you use SMP, then every CPU core should call
+     *  `kernel_brake()` to stop executing!
+     */
+    printk("> [INIT] CPU #%u has entered kernel with VM!\n",
+           (unsigned int)get_current_cpu_id());
+    // TODO: [p4-task1 cont.] remove the brake and continue to start user processes.
+    // kernel_brake();
 
     // 每个核设置自己的 timer
     bios_set_timer(get_ticks() + TIMER_INTERVAL);

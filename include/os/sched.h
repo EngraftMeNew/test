@@ -80,6 +80,9 @@ typedef struct pcb
     /* process id */
     pid_t pid;
 
+    /* pgdir */
+    uintptr_t pgdir; // 当前进程的“页表根地址”
+
     /* BLOCK | READY | RUNNING */
     task_status_t status;
 
@@ -89,8 +92,6 @@ typedef struct pcb
 
     /* time(seconds) to wake up sleeping PCB */
     uint64_t wakeup_time;
-
-
 
 } pcb_t;
 

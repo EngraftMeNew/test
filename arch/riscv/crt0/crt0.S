@@ -1,6 +1,6 @@
-/*为C语言运行幻剑创建最小启动框架，建立栈，清零bss段，调用main*/
-/*位于boot->kernel->用户任务的最初入口*/
 #include <asm.h>
+
+#define USER_STACK      0x52500000
 
 .section ".entry_function","ax"
 ENTRY(_start)

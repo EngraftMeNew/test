@@ -4,8 +4,6 @@
 #include <type.h>
 #include <os/string.h>
 
-#define KVA_OFFSET 0xffffffc000000000UL
-
 #define SATP_MODE_SV39 8
 #define SATP_MODE_SV48 9
 
@@ -73,8 +71,7 @@ static inline void set_satp(
 #define PPN_BITS 9lu
 #define NUM_PTE_ENTRY (1 << PPN_BITS)
 
-#define PTE_PPN_SHIFT 10
-#define PTE_PPN_MASK ((1ULL << 44) - 1)
+#define KVA_OFFSET 0xffffffc000000000
 
 typedef uint64_t PTE;
 
@@ -92,18 +89,19 @@ static inline uintptr_t pa2kva(uintptr_t pa)
 /* get physical page addr from PTE 'entry' */
 static inline uint64_t get_pa(PTE entry)
 {
-    return ((entry >> 10) & PTE_PPN_MASK) << NORMAL_PAGE_SHIFT;
+    uint64_t pfn = (entry >> 10) & ((1ULL << 44) - 1);
+    return pfn << 12;
 }
 
 /* Get/Set page frame number of the `entry` */
 static inline long get_pfn(PTE entry)
 {
-    return (entry >> PTE_PPN_SHIFT) & PTE_PPN_MASK;
+    return (long)((entry >> _PAGE_PFN_SHIFT) & ((1ULL << 44) - 1));
 }
 static inline void set_pfn(PTE *entry, uint64_t pfn)
 {
-    *entry &= ~(PTE_PPN_MASK << PTE_PPN_SHIFT);
-    *entry |= (pfn & PTE_PPN_MASK) << PTE_PPN_SHIFT;
+    *entry &= ~(((1ULL << 44) - 1) << _PAGE_PFN_SHIFT);
+    *entry |= (pfn & ((1ULL << 44) - 1)) << _PAGE_PFN_SHIFT;
 }
 
 /* Get/Set attribute(s) of the `entry` */
