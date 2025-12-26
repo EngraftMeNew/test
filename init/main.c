@@ -211,46 +211,48 @@ int main(void)
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
-        //printk("> [INIT] PCB initialization succeeded.\n");
+        // printk("> [INIT] PCB initialization succeeded.\n");
 
         // Read CPU frequency (｡•ᴗ-)_
         time_base = bios_read_fdt(TIMEBASE);
 
         // Init lock mechanism o(´^｀)o
         init_locks();
-        //printk("> [INIT] Lock mechanism initialization succeeded.\n");
+        // printk("> [INIT] Lock mechanism initialization succeeded.\n");
 
         init_barriers();
-        //printk("> [INIT] Barrier initialization succeeded.\n");
+        // printk("> [INIT] Barrier initialization succeeded.\n");
 
         init_conditions();
-        //printk("> [INIT] Condition initialization succeeded.\n");
+        // printk("> [INIT] Condition initialization succeeded.\n");
 
         init_mbox();
-        //printk("> [INIT] Mailbox initialization succeeded.\n");
+        // printk("> [INIT] Mailbox initialization succeeded.\n");
 
         // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
         // NOTE: The function of sstatus.sie is different from sie's
 
         // Init interrupt (^_^)
         init_exception();
-        //printk("> [INIT] Interrupt processing initialization succeeded.\n");
+        // printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
         // init barriers
 
         // Init system call table (0_0)
         init_syscall();
-        //printk("> [INIT] System call initialized successfully.\n");
+        // printk("> [INIT] System call initialized successfully.\n");
 
         // Init screen (QAQ)
         init_screen();
-        //printk("> [INIT] SCREEN initialization succeeded.\n");
+        // printk("> [INIT] SCREEN initialization succeeded.\n");
 
         // 释放大内核锁，唤醒从核
         unlock_kernel();
-        wakeup_other_hart(NULL);
-        // 重新抢内核锁
+        // wakeup_other_hart(NULL);
+        //  重新抢内核锁
         lock_kernel();
+        setup_exception(); // 设置 stvec、SIE 等异常入口
+        bios_set_timer(get_ticks() + TIMER_INTERVAL);
         cpu_id = 0;
         // 取消临时映射
         disable_tmp_map();
@@ -268,7 +270,7 @@ int main(void)
 
     // 这里开始两个核执行相同的代码
 
-    setup_exception(); // 设置 stvec、SIE 等异常入口
+    // setup_exception(); // 设置 stvec、SIE 等异常入口
 
     /*
      * Just start kernel with VM and print this string
@@ -282,7 +284,7 @@ int main(void)
     // kernel_brake();
 
     // 每个核设置自己的 timer
-    bios_set_timer(get_ticks() + TIMER_INTERVAL);
+    // bios_set_timer(get_ticks() + TIMER_INTERVAL);
 
     if (cpu_id == 0)
         printk("> [INIT] CPU 0 initialization succeeded.\n");

@@ -94,6 +94,7 @@ void handle_other(regs_context_t *regs, uint64_t stval, uint64_t scause)
         " s4  ", " s5  ", " s6  ", " s7  ", " s8  ",
         " s9  ", " s10 ", " s11 ", " t3  ", " t4  ",
         " t5  ", " t6  "};
+    printk("\n\n\n\n\n\n\n\n\n\n\n");
     for (int i = 0; i < 32; i += 3)
     {
         for (int j = 0; j < 3 && i + j < 32; ++j)

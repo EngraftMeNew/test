@@ -102,6 +102,11 @@ void do_scheduler(void)
     //   switch_to current_running[cpu_id]
     // 切换页表根
     set_satp(SATP_MODE_SV39, current_running[cpu_id]->pid, kva2pa(current_running[cpu_id]->pgdir) >> NORMAL_PAGE_SHIFT);
+    printk("[sched] switch to pid=%d pgdir(kva)=%lx pgdir(pa)=%lx \n",
+           current_running[cpu_id]->pid,
+           current_running[cpu_id]->pgdir,
+           kva2pa(current_running[cpu_id]->pgdir));
+
     // 刷TLB
     local_flush_tlb_all();
     switch_to(prior_running, current_running[cpu_id]);
