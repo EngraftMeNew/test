@@ -37,11 +37,8 @@
 #define SYSCALL_MBOX_CLOSE 53
 #define SYSCALL_MBOX_SEND 54
 #define SYSCALL_MBOX_RECV 55
-<<<<<<< HEAD
 #define SYSCALL_FREE_MEM 56
 #define SYSCALL_PIPE_OPEN 57
 #define SYSCALL_PIPE_GIVE 58
 #define SYSCALL_PIPE_TAKE 59
-=======
->>>>>>> Project3
 #endif

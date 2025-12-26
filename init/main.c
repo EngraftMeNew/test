@@ -211,40 +211,40 @@ int main(void)
 
         // Init Process Control Blocks |•'-'•) ✧
         init_pcb();
-        printk("> [INIT] PCB initialization succeeded.\n");
+        //printk("> [INIT] PCB initialization succeeded.\n");
 
         // Read CPU frequency (｡•ᴗ-)_
         time_base = bios_read_fdt(TIMEBASE);
 
         // Init lock mechanism o(´^｀)o
         init_locks();
-        printk("> [INIT] Lock mechanism initialization succeeded.\n");
+        //printk("> [INIT] Lock mechanism initialization succeeded.\n");
 
         init_barriers();
-        printk("> [INIT] Barrier initialization succeeded.\n");
+        //printk("> [INIT] Barrier initialization succeeded.\n");
 
         init_conditions();
-        printk("> [INIT] Condition initialization succeeded.\n");
+        //printk("> [INIT] Condition initialization succeeded.\n");
 
         init_mbox();
-        printk("> [INIT] Mailbox initialization succeeded.\n");
+        //printk("> [INIT] Mailbox initialization succeeded.\n");
 
         // TODO: [p2-task4] Setup timer interrupt and enable all interrupt globally
         // NOTE: The function of sstatus.sie is different from sie's
 
         // Init interrupt (^_^)
         init_exception();
-        printk("> [INIT] Interrupt processing initialization succeeded.\n");
+        //printk("> [INIT] Interrupt processing initialization succeeded.\n");
 
         // init barriers
 
         // Init system call table (0_0)
         init_syscall();
-        printk("> [INIT] System call initialized successfully.\n");
+        //printk("> [INIT] System call initialized successfully.\n");
 
         // Init screen (QAQ)
         init_screen();
-        printk("> [INIT] SCREEN initialization succeeded.\n");
+        //printk("> [INIT] SCREEN initialization succeeded.\n");
 
         // 释放大内核锁，唤醒从核
         unlock_kernel();

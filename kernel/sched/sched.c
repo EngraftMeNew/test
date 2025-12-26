@@ -100,6 +100,10 @@ void do_scheduler(void)
     current_running[cpu_id]->status = TASK_RUNNING;
     // printk("going to do switch_to\n");
     //   switch_to current_running[cpu_id]
+    // 切换页表根
+    set_satp(SATP_MODE_SV39, current_running[cpu_id]->pid, kva2pa(current_running[cpu_id]->pgdir) >> NORMAL_PAGE_SHIFT);
+    // 刷TLB
+    local_flush_tlb_all();
     switch_to(prior_running, current_running[cpu_id]);
 }
 
@@ -152,7 +156,6 @@ pid_t do_exec(char *name, int argc, char *argv[])
 {
     char **argv_ptr = NULL;
     int index = -1;
-    uint64_t entry_point = 0;
     uint64_t user_sp;
     pid_t ret = 0; // 默认失败返回 0
 
@@ -160,50 +163,65 @@ pid_t do_exec(char *name, int argc, char *argv[])
     if (index == -1)
         return 0;
 
-    entry_point = load_task_img(name);
+    // 新建页表并共享内核映射
+    uintptr_t pgdir = allocPage(1);
+    clear_pgdir(pgdir);
+    share_pgtable(pgdir, pa2kva(PGDIR_PA));
+
+    // 把程序映射到用户地址空间
+    uint64_t entry_point = map_task(name, pgdir);
     if (entry_point == 0)
         return 0;
 
     // 分配内核栈和用户栈
-    pcb[index].kernel_sp = (reg_t)(allocKernelPage(1) + PAGE_SIZE);
-    pcb[index].user_sp = (reg_t)(allocUserPage(1) + PAGE_SIZE);
-    user_sp = pcb[index].user_sp;
+    pcb[index].kernel_sp = (reg_t)(allocPage(1) + PAGE_SIZE);
+
+    uint8_t *stack_kva = (uint8_t *)alloc_page_helper(USER_STACK_ADDR, pgdir);
+    uint64_t user_sp_va_top = USER_STACK_ADDR + PAGE_SIZE; // 用户态看到的栈顶VA
 
     // 分配 pid / 初始化通用字段
     task_num++;
     pcb[index].pid = task_num;
+    pcb[index].pgdir = pgdir;
     pcb[index].status = TASK_READY;
     pcb[index].cursor_x = 0;
     pcb[index].cursor_y = 0;
     pcb[index].wait_list.prev = pcb[index].wait_list.next = &pcb[index].wait_list;
     pcb[index].list.prev = pcb[index].list.next = NULL;
-    // 参数搬到用户栈：先预留 argv 指针数组
-    user_sp -= sizeof(char *) * argc;
-    argv_ptr = (char **)user_sp;
+
+    //  在“栈页KVA”里构造 argv，但写入的指针必须是“用户VA”
+    //  offset 表示距离 USER_STACK_ADDR 的偏移
+    uint64_t sp_off = PAGE_SIZE; // 从页顶往下推
+    sp_off -= sizeof(char *) * (uint64_t)argc;
+
+    char **argv_ptr_user = (char **)(USER_STACK_ADDR + sp_off); // 用户看到的 argv 指针数组地址（VA）
+    char **argv_ptr_kva = (char **)(stack_kva + sp_off);        // 内核写入用的地址（KVA）
 
     for (int i = argc - 1; i >= 0; i--)
     {
-        int len = strlen(argv[i]) + 1; // '\0'
-        user_sp -= len;
-        argv_ptr[i] = (char *)user_sp;
-        strcpy((char *)user_sp, argv[i]);
+        uint64_t len = (uint64_t)strlen(argv[i]) + 1;
+        sp_off -= len;
+
+        // 字符串在用户栈中的 VA
+        argv_ptr_kva[i] = (char *)(USER_STACK_ADDR + sp_off);
+
+        // 把字符串写到对应位置（KVA）
+        strcpy((char *)(stack_kva + sp_off), argv[i]);
     }
 
     // 对齐
-    pcb[index].user_sp = (reg_t)ROUNDDOWN(user_sp, 128);
+    sp_off = (uint64_t)ROUNDDOWN(sp_off, 128);
+    pcb[index].user_sp = (reg_t)(USER_STACK_ADDR + sp_off);
 
     init_pcb_stack(pcb[index].kernel_sp,
                    pcb[index].user_sp,
                    entry_point,
                    &pcb[index],
                    argc,
-                   argv_ptr);
+                   argv_ptr_user);
 
     add_node_to_q(&pcb[index].list, &ready_queue);
-
-    ret = pcb[index].pid;
-
-    return ret;
+    return pcb[index].pid;
 }
 
 pid_t do_getpid()
