@@ -159,10 +159,10 @@ void do_process_show(void)
 
 pid_t do_exec(char *name, int argc, char *argv[])
 {
-    char **argv_ptr = NULL;
+    //char **argv_ptr = NULL;
     int index = -1;
-    uint64_t user_sp;
-    pid_t ret = 0; // 默认失败返回 0
+    //uint64_t user_sp;
+    //pid_t ret = 0; // 默认失败返回 0
 
     index = search_free_pcb();
     if (index == -1)
@@ -182,7 +182,7 @@ pid_t do_exec(char *name, int argc, char *argv[])
     pcb[index].kernel_sp = (reg_t)(allocPage(1) + PAGE_SIZE);
 
     uint8_t *stack_kva = (uint8_t *)alloc_page_helper(USER_STACK_ADDR, pgdir);
-    uint64_t user_sp_va_top = USER_STACK_ADDR + PAGE_SIZE; // 用户态看到的栈顶VA
+    //uint64_t user_sp_va_top = USER_STACK_ADDR + PAGE_SIZE; // 用户态看到的栈顶VA
 
     // 分配 pid / 初始化通用字段
     task_num++;

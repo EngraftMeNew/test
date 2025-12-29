@@ -215,11 +215,13 @@ void sys_condition_destroy(int cond_idx)
 int sys_semaphore_init(int key, int init)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_semaphore_init */
+    return 0;
 }
 
 void sys_semaphore_up(int sema_idx)
 {
     /* TODO: [p3-task2] call invoke_syscall to implement sys_semaphore_up */
+    (void)sema_idx;
 }
 
 void sys_semaphore_down(int sema_idx)

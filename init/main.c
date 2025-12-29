@@ -298,6 +298,6 @@ int main(void)
         enable_preempt();
         asm volatile("wfi");
     }
-
+    kernel_brake();
     return 0;
 }

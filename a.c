@@ -17,7 +17,6 @@ uint64_t load_task_img(char *taskname)
             entry_addr = TASK_MEM_BASE + TASK_SIZE * i;
             start_sec = tasks[i].start_addr / 512; // 起始扇区：向下取整
             bios_sd_read(TMP_MEM_BASE, tasks[i].block_nums, start_sec);
-            // memcpy((uint8_t *)(uint64_t)(entry_addr), (uint8_t *)pa2kva((uint64_t)(TMP_MEM_BASE + (tasks[i].start_addr - start_sec * 512))), tasks[i].p_memsz);
             memcpy((uint8_t *)(uint64_t)(entry_addr), (uint8_t *)pa2kva((uint64_t)(TMP_MEM_BASE + (tasks[i].start_addr - start_sec * 512))), tasks[i].p_memsz);
             return entry_addr; // 返回程序存储的起始位置
         }
@@ -63,4 +62,38 @@ uint64_t map_task(char *taskname, uintptr_t pgdir)
     }
     bios_putchar('\n');
     return 0;
+}
+
+void batch()
+{
+    uint64_t entry_addr;
+    void (*entry)(void);
+    char taskname[16] = "number";
+    entry_addr = load_task_img(taskname);
+    if (entry_addr != 0)
+    {
+        entry = (void *)entry_addr;
+        entry();
+    }
+    memcpy(taskname, "mul3", 5);
+    entry_addr = load_task_img(taskname);
+    if (entry_addr != 0)
+    {
+        entry = (void *)entry_addr;
+        entry();
+    }
+    memcpy(taskname, "add10", 6);
+    entry_addr = load_task_img(taskname);
+    if (entry_addr != 0)
+    {
+        entry = (void *)entry_addr;
+        entry();
+    }
+    memcpy(taskname, "square", 7);
+    entry_addr = load_task_img(taskname);
+    if (entry_addr != 0)
+    {
+        entry = (void *)entry_addr;
+        entry();
+    }
 }

@@ -93,6 +93,8 @@ void freePage(ptr_t baseAddr)
 void *kmalloc(size_t size)
 {
     // TODO [P4-task1] (design you 'kmalloc' here if you need):
+    (void)size;
+    return NULL;
 }
 
 /* this is used for mapping kernel virtual address into user page table */
@@ -152,9 +154,12 @@ uintptr_t alloc_page_helper(uintptr_t va, uintptr_t pgdir)
 uintptr_t shm_page_get(int key)
 {
     // TODO [P4-task4] shm_page_get:
+    (void)key;
+    return 0; 
 }
 
 void shm_page_dt(uintptr_t addr)
 {
     // TODO [P4-task4] shm_page_dt:
+    (void)addr;
 }
