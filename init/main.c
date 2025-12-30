@@ -255,9 +255,6 @@ int main(void)
         bios_set_timer(get_ticks() + TIMER_INTERVAL);
         cpu_id = 0;
         // 取消临时映射
-        disable_tmp_map();
-
-        do_exec("shell", 0, NULL);
     }
     else
     {
@@ -292,6 +289,10 @@ int main(void)
         printk("> [INIT] CPU 1 initialization succeeded.\n");
 
     unlock_kernel();
+
+    disable_tmp_map();
+
+    do_exec("shell", 0, NULL);
 
     while (1)
     {
